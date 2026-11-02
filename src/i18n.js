@@ -1,5 +1,16 @@
-// SILA — every user-visible UI string, keyed. Arabic (Task 6) adds a second table; the UI never hard-codes text.
-// Engine-generated reasons and summaries (permission reasons, blocker details) are English and shown as-is.
+// SILA — every user-visible string, keyed, in English and Arabic (src/locales/ar*.js). The UI never hard-codes text,
+// and engine messages are stored as { code, params }, so they render in whichever language the viewer chose.
+
+import { ar1 } from './locales/ar1.js';
+import { ar2 } from './locales/ar2.js';
+import { ar3 } from './locales/ar3.js';
+import { ar4 } from './locales/ar4.js';
+import { ar5 } from './locales/ar5.js';
+import { ar6 } from './locales/ar6.js';
+import { ar7 } from './locales/ar7.js';
+import { ar8 } from './locales/ar8.js';
+import { ar9 } from './locales/ar9.js';
+import { dataAr } from './locales/data-ar.js';
 
 const en = {
   // App shell
@@ -1614,8 +1625,164 @@ const en6 = {
   'auditAction.updateCrewStatus': 'Update crew status',
 };
 
-const TABLES = { en: { ...en, ...en2, ...en3, ...engineEn, ...en4, ...en5, ...en6 } };
-export const LOCALES = { en: { label: 'English', dir: 'ltr', intl: 'en-GB' } };
+// Task 6: language switch, ETA recalculation, About page, error fallback, guided demo.
+const en7 = {
+  'lang.switchTo': 'Switch language to {lang}',
+  'common.comma': ', ',
+  'err.origin': 'The starting point must be a position on the map.',
+  'tl.etaCrew': 'ETA set by the crew: {eta}',
+  'tl.etaRecalculated': 'ETA recalculated for the new destination: {eta} (simulated)',
+  'eta.recalculated': 'Recalculated for the new destination (simulated)',
+  'dest.etaOverride': 'Your ETA in minutes (optional)',
+  'dest.etaOverrideHint': 'Leave empty to recalculate a simulated ETA to the new hospital.',
+
+  'about.link': 'About this prototype',
+  'about.title': 'About this prototype',
+  'about.what.title': 'What SILA is',
+  'about.what.body': 'SILA — Connected Patient Flow — is a hackathon prototype that connects citizens, ambulance crews and hospital teams around one patient journey: an arrival notice before the patient arrives, a structured ambulance handover, ER and ICU bed readiness, and the transfer between them. One rule engine checks every action and keeps a single, accurate location for each patient.',
+  'about.real.title': 'What is real in this demo',
+  'about.real.speech': 'Browser speech recognition (Web Speech API), when your browser offers it.',
+  'about.real.geo': 'Browser geolocation, only when you press “Use my location”.',
+  'about.real.storage': 'Demo data stored in this browser (localStorage).',
+  'about.real.sync': 'Live sync between open tabs on this device (BroadcastChannel).',
+  'about.sim.title': 'What is simulated',
+  'about.sim.maps': 'The city map, distances and travel times (a fictional demo city).',
+  'about.sim.etas': 'ETAs and the ambulance route strip.',
+  'about.sim.extraction': 'Field extraction from speech or text (simple demo rules, not AI).',
+  'about.sim.capacity': 'Public capacity indicators.',
+  'about.sim.notifications': 'Notifications — shown inside SILA only; nothing is sent.',
+  'about.sim.auth': 'Sign-in and roles — a demo role switcher, not real authentication.',
+  'about.privacy.title': 'Privacy',
+  'about.privacy.audio': 'SILA never stores raw audio — only the text you choose to keep.',
+  'about.privacy.provider': 'Speech may be processed by your browser’s provider, for example over the internet.',
+  'about.privacy.synthetic': 'All patients, staff and hospitals are synthetic.',
+  'about.privacy.location': 'Your location is used only to sort hospitals by distance and is not sent anywhere.',
+  'about.prod.title': 'Before real-world use',
+  'about.prod.body': 'A production system would need secure backend authentication and permissions, clinical governance and safety review, real integrations (ambulance dispatch and hospital systems), privacy controls and data-protection compliance, reliable and audited synchronisation, and a deployment and security review.',
+  'about.emergency.title': 'Not an emergency service',
+  'about.emergency.body': 'In an emergency, call {number} from your phone. SILA does not call for help, does not dispatch ambulances, and does not diagnose, triage or prescribe.',
+  'about.back': 'Back to the start page',
+
+  'error.title': 'Something went wrong',
+  'error.body': 'This page could not be displayed. Your demo data is safe in this browser.',
+  'error.reload': 'Reload',
+  'error.home': 'Go to the start page',
+
+  'demo.run': 'Run guided demo',
+  'demo.startTitle': 'Guided demo',
+  'demo.startIntro': 'The guided demo switches roles and pages for you, highlights the real control for each step and waits for you to click it — or press “Do it for me”. It uses exactly the same actions and permission checks as normal use.',
+  'demo.path': 'Choose a path',
+  'demo.path.pitch': '3-minute pitch',
+  'demo.path.pitchBody': '13 steps: citizen notice, ambulance handover, bed readiness and the ICU transfer.',
+  'demo.path.tour': 'Full tour',
+  'demo.path.tourBody': 'All 17 steps of the connected story, plus the ward step-down flag and a wrong-role rejection.',
+  'demo.reset': 'Reset to clean demo data first (recommended)',
+  'demo.twoScreen': 'Two-screen mode',
+  'demo.twoScreenHint': 'Open a second tab and sign in as the ER coordinator to show the board updating live. The guided demo itself runs in this tab.',
+  'demo.openSecond': 'Open a second tab (ER board)',
+  'demo.start': 'Start',
+  'demo.panel': 'Guided demo',
+  'demo.stepOf': 'Step {n} of {total}',
+  'demo.doIt': 'Do it for me',
+  'demo.next': 'Next',
+  'demo.back': 'Back',
+  'demo.exit': 'Exit',
+  'demo.skip': 'Skip this step',
+  'demo.done': 'Done',
+  'demo.waiting': 'Click the highlighted control, or press “Do it for me”.',
+  'demo.viewOnly': 'Point out the highlighted part, then press Next.',
+  'demo.running': '{action} — as {name}',
+  'demo.blocked': 'This step can’t run: {reason}',
+  'demo.rejected': 'The engine refused it: {reason}',
+  'demo.rejectedExpected': 'As expected, the engine refused: {reason}',
+  'demo.finished': 'Demo complete in {time}.',
+  'demo.elapsed': 'Elapsed {time}',
+  'demo.progress': 'Demo progress',
+  'demo.move': 'Move the demo panel (drag, or use the arrow keys)',
+  'demo.actingAs': 'Acting as {name} · {role}',
+  'demo.actingCitizen': 'Acting as a citizen on this device',
+  'demo.targetMissing': 'The highlighted control isn’t on screen yet — scroll, or press “Do it for me”.',
+  'demo.pre.citizenCase': 'the citizen notice hasn’t been sent yet.',
+  'demo.pre.crewCase': 'the ambulance handover hasn’t been sent yet.',
+  'demo.pre.ticket': 'there is no open monitor fault on ER-04.',
+  'demo.pre.placed': 'the ambulance patient is not in ER-04 yet.',
+  'demo.pre.transfer': 'there is no ICU transfer request for the ambulance patient.',
+  'demo.pre.capacity': 'ICU capacity has not been confirmed yet.',
+  'demo.pre.bedTaken': 'ER-04 is no longer free.',
+  'demo.pre.finale': 'the patient has not reached the ICU yet.',
+  'demo.step.citizenSample.title': 'A citizen describes the emergency',
+  'demo.step.citizenSample.text': 'Someone with a patient picks a sample voice scenario. SILA reads it with simple demo rules — nothing is diagnosed.',
+  'demo.step.citizenReview.title': 'An editable, structured notice',
+  'demo.step.citizenReview.text': 'The words become fields the citizen can correct. Everything stays “citizen-reported — not clinically verified”.',
+  'demo.step.citizenSend.title': 'Choose the nearest hospital and send',
+  'demo.step.citizenSend.text': 'Distances are simulated from the district. Sending is not a bed reservation.',
+  'demo.step.citizenReviewSend.title': 'Review, choose the nearest hospital, send',
+  'demo.step.citizenReviewSend.text': 'The citizen confirms the extracted fields, picks the nearest hospital (simulated distance) and sends. No bed is reserved.',
+  'demo.step.erSeesNotice.title': 'It appears on that hospital’s ER board',
+  'demo.step.erSeesNotice.text': 'The coordinator sees the reported concern, ETA and that it is unverified — live, with no refresh.',
+  'demo.step.erAck.title': 'The ER coordinator acknowledges',
+  'demo.step.erAck.text': 'The citizen’s screen updates instantly. Acknowledging is not accepting or reserving a bed.',
+  'demo.step.crewHandover.title': 'An ambulance sends a structured handover',
+  'demo.step.crewHandover.text': 'Crew WN-A12 sends vitals with units and times, crew-reported acuity and an ETA. Staff triage stays empty until the ER assesses.',
+  'demo.step.erBedBlocked.title': 'The ER looks for a bed',
+  'demo.step.erBedBlocked.text': 'ER-04 is vacant but not ready: cleaning and nursing verification are still open, each with an owner.',
+  'demo.step.nurseReportsFault.title': 'A nurse reports a monitor fault',
+  'demo.step.nurseReportsFault.text': 'The ER-04 monitor shows no SpO₂. The fault becomes a blocker owned by biomedical engineering and the ready-time forecast changes.',
+  'demo.step.wrongRole.title': 'Wrong role? The engine says why',
+  'demo.step.wrongRole.text': 'The nurse tries to resolve the equipment ticket. The engine refuses and explains: only a biomedical technician can.',
+  'demo.step.biomedResolves.title': 'Biomedical engineering fixes it',
+  'demo.step.biomedResolves.text': 'The technician resolves the ticket and records a passed monitor check. Other blockers on the bed stay visible.',
+  'demo.step.cleaning.title': 'Housekeeping completes cleaning',
+  'demo.step.cleaning.text': 'Cleaning is cleared from the queue — it does not clear any technical or nursing blocker.',
+  'demo.step.nurseVerifies.title': 'The nurse verifies readiness',
+  'demo.step.nurseVerifies.text': 'Only a bedside nurse can give clinical sign-off. ER-04 is now ready.',
+  'demo.step.reserve.title': 'The coordinator reserves the bed',
+  'demo.step.reserve.text': 'ER-04 is held for the ambulance patient for 30 minutes.',
+  'demo.step.arrivePlace.title': 'Arrival, triage and placement',
+  'demo.step.arrivePlace.text': 'Staff confirm arrival, record a staff-entered triage priority and confirm placement. The patient now has one location: ER-04.',
+  'demo.step.reservePlace.title': 'Reserve, arrive, triage, place',
+  'demo.step.reservePlace.text': 'The coordinator reserves ER-04; staff confirm arrival, record triage themselves and confirm placement. One patient, one bed.',
+  'demo.step.icuRequest.title': 'The ER doctor requests ICU',
+  'demo.step.icuRequest.text': 'Only an ER doctor can request a transfer, and only after assessment.',
+  'demo.step.icuApprove.title': 'The intensivist accepts',
+  'demo.step.icuApprove.text': 'Clinical acceptance only — the ICU coordinator confirms which bed in a separate step.',
+  'demo.step.icuRequestAccept.title': 'ER doctor requests ICU; the intensivist accepts',
+  'demo.step.icuRequestAccept.text': 'Clinical approval is separate from capacity: no ICU bed is promised yet.',
+  'demo.step.stepDownFlag.title': 'An ICU patient is ready for the ward',
+  'demo.step.stepDownFlag.text': 'The ICU doctor flags Poplar 33 for step-down. The room stays occupied — it is only “expected to free soon”.',
+  'demo.step.icuCapacity.title': 'Capacity from the step-down room',
+  'demo.step.icuCapacity.text': 'Poplar 33 leaves ICU-08; the ICU coordinator confirms ICU-08 for our patient. Cleaning, the ventilator check and nursing verification follow before it is reserved.',
+  'demo.step.icuCapacityStepDown.title': 'The coordinator confirms the step-down bed',
+  'demo.step.icuCapacityStepDown.text': 'Poplar 33 steps down to the ward, freeing ICU-08. The ICU coordinator confirms it; cleaning, the ventilator check and verification happen, then it is reserved.',
+  'demo.step.handoverMove.title': 'Handover and the porter moves the patient',
+  'demo.step.handoverMove.text': 'Sending and receiving nurses complete handover; the porter confirms pickup and drop-off. In transit, the patient is in no bed.',
+  'demo.step.handoverMoveArrive.title': 'Handover, transport and ICU arrival',
+  'demo.step.handoverMoveArrive.text': 'Both nurses complete handover, the porter moves the patient, and the ICU nurse confirms arrival and placement in ICU-08.',
+  'demo.step.icuArrival.title': 'The patient arrives in ICU',
+  'demo.step.icuArrival.text': 'The ICU nurse confirms arrival and placement in ICU-08.',
+  'demo.step.finale.title': 'The patient is in ICU; ER-04 is in the cleaning queue',
+  'demo.step.finale.text': 'One connected flow: the vacated ER bed now appears in housekeeping’s queue, ready for the next patient.',
+  'demo.data.crewConcern': 'Collapsed at work, short of breath, chest tightness',
+  'demo.data.crewHistory': 'Asthma; smoker',
+  'demo.data.crewAllergies': 'None known',
+  'demo.data.crewNotes': 'Found sitting, speaking in short sentences. Oxygen started, IV access placed.',
+  'demo.data.faultText': 'Monitor shows no SpO₂ reading',
+  'demo.data.repair': 'Replaced the SpO₂ module and tested',
+  'demo.data.icuReason': 'Rising oxygen requirement despite ER treatment',
+  'demo.data.acceptReason': 'Meets ICU admission criteria',
+  'demo.data.stepDownReason': 'Stable for 24 h; ward bed agreed',
+};
+
+const TABLES = {
+  en: { ...en, ...en2, ...en3, ...engineEn, ...en4, ...en5, ...en6, ...en7 },
+  ar: { ...ar1, ...ar2, ...ar3, ...ar4, ...ar5, ...ar6, ...ar7, ...ar8, ...ar9 },
+};
+// Arabic uses the Gregorian calendar and Western digits so times and vital signs stay unambiguous for clinical use
+// (plain 'ar-SA' defaults to the Hijri calendar and Arabic-Indic digits).
+export const LOCALES = {
+  en: { label: 'English', dir: 'ltr', intl: 'en-GB' },
+  ar: { label: 'العربية', dir: 'rtl', intl: 'ar-SA-u-ca-gregory-nu-latn' },
+};
 let locale = 'en';
 
 export function setLocale(next) {
@@ -1625,14 +1792,33 @@ export const getLocale = () => locale;
 export const dir = () => LOCALES[locale].dir;
 export const hasKey = (key) => key in TABLES.en;
 export const allKeys = () => Object.keys(TABLES.en);
+/** The raw string for a key in one locale (undefined when missing) — for completeness tests. */
+export const rawString = (loc, key) => TABLES[loc]?.[key];
+
+export const isRtl = () => LOCALES[locale].dir === 'rtl';
+
+/** Synthetic seed data (names, demo patients' text) in the viewer's language; anything else is returned unchanged. */
+export function localizeData(v) {
+  if (locale !== 'ar' || typeof v !== 'string') return v;
+  const core = v.trim();
+  return dataAr[core] ? v.replace(core, dataAr[core]) : v;
+}
+
+// In right-to-left text every inserted value (case refs, bed IDs, units, vitals, times, phone numbers, names) is wrapped
+// in a Unicode first-strong isolate — the plain-text equivalent of <bdi> — so it can never reorder the sentence around it.
+const FSI = '\u2068';
+const PDI = '\u2069';
+export const isolate = (s) => (isRtl() && s !== '' ? `${FSI}${s}${PDI}` : s);
+/** Joins display fragments (names, IDs, labels) with each one localized and isolated: "Ivy 05 · SL-2041". */
+export const joinText = (parts, sep = ' · ') => parts.filter((p) => p !== null && p !== undefined && p !== '').map((p) => isolate(String(localizeData(p)))).join(sep);
 
 // Parameters may be plain values, nested messages ({ code, params }), times ({ iso }) or lists of those.
 function renderParam(v) {
   if (v === null || v === undefined) return '';
   if (Array.isArray(v)) return v.map(renderParam).join(t('list.sep'));
   if (typeof v === 'object' && typeof v.code === 'string') return t(v.code, v.params);
-  if (typeof v === 'object' && 'iso' in v) return formatTime(v.iso);
-  return String(v);
+  if (typeof v === 'object' && 'iso' in v) return isolate(formatTime(v.iso));
+  return isolate(String(localizeData(v)));
 }
 
 export function t(key, params = {}) {
@@ -1646,6 +1832,7 @@ export function t(key, params = {}) {
 
 // Render anything the engine stores for display: a message object, or plain data text (names, user-entered notes).
 export function tm(value) {
+  if (typeof value === 'string') return localizeData(value);
   return renderParam(value);
 }
 

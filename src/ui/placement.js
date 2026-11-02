@@ -2,7 +2,7 @@
 // Each bed or patient option is checked by the engine; unusable ones are disabled and say why.
 
 import { compatibilityError, REQUIREMENT_KEYS } from '../readiness.js';
-import { t, tm } from '../i18n.js';
+import { t, tm, joinText } from '../i18n.js';
 import { erBeds, selectIncoming, selectAwaitingTriage, selectWaiting, bedBoardStatus } from '../selectors.js';
 import { h, nextUid } from './dom.js';
 import { icon } from './icons.js';
@@ -33,7 +33,7 @@ export function openReserveForCase(c) {
   const beds = erBeds(s, c.destinationHospitalId);
   const options = beds.map((b) => {
     const v = check('reserveBed', { bedId: b.id, caseId: c.id });
-    return { value: b.id, ok: v.ok, reason: v.reason, label: `${b.label} · ${b.zone}`, seen: b.version,
+    return { value: b.id, ok: v.ok, reason: v.reason, label: joinText([b.label, b.zone]), seen: b.version,
       badge: pill(bedBoardStatus(b, s, now()).level) };
   });
   const usable = options.filter((o) => o.ok);

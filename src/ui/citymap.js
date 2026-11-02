@@ -2,7 +2,7 @@
 // kept in sync with the hospital list. Geography is never mirrored for right-to-left layouts.
 
 import { DISTRICTS, DEMO_GRID } from '../config.js';
-import { t } from '../i18n.js';
+import { t, localizeData } from '../i18n.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const K = 10; // px per km
@@ -34,11 +34,11 @@ export function cityMap({ hospitals, point, pointLabel = t('hospitals.you'), sel
       const y = h.position.y * K;
       const g = s('g', { class: ['marker', h.id === selectedId ? 'selected' : ''].join(' '), tabindex: 0, role: 'button',
         'aria-pressed': String(h.id === selectedId), 'data-focus-key': `map:${h.id}`,
-        'aria-label': h.trip ? `${h.name}, ${t('hospitals.distance', { km: h.trip.km })} (${t('hospitals.simulated')})` : h.name },
+        'aria-label': h.trip ? `${localizeData(h.name)}${t('common.comma')}${t('hospitals.distance', { km: h.trip.km })} (${t('hospitals.simulated')})` : localizeData(h.name) },
         s('circle', { cx: x, cy: y, r: 15, class: 'hit' }), // invisible touch target (≥ 44px at phone width)
         s('circle', { cx: x, cy: y, r: 9 }),
         s('path', { d: `M${x} ${y - 4.5}v9M${x - 4.5} ${y}h9`, class: 'cross' }),
-        s('text', { x, y: y + 20, 'text-anchor': 'middle' }, h.shortName));
+        s('text', { x, y: y + 20, 'text-anchor': 'middle' }, localizeData(h.shortName)));
       g.addEventListener('click', () => onSelect(h.id));
       g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(h.id); } });
       return g;

@@ -4,7 +4,7 @@
 import { getStore } from '../store.js';
 import { targetOf, preflight } from '../actions.js';
 import { can } from '../permissions.js';
-import { t, tm } from '../i18n.js';
+import { t, tm, setLocale, getLocale, LOCALES } from '../i18n.js';
 import { h, clear, append, nextUid } from './dom.js';
 import { icon } from './icons.js';
 
@@ -18,6 +18,21 @@ const SESSION_KEY = 'sila.activeUser';
 export const DEFAULT_USER = 'u-er-coord';
 
 export const now = () => new Date().toISOString();
+
+// ---------- Language (remembered per device) ----------
+const LOCALE_KEY = 'sila.locale';
+export function initLocale() {
+  let saved = null;
+  try { saved = localStorage.getItem(LOCALE_KEY); } catch { /* storage blocked */ }
+  if (saved && LOCALES[saved]) setLocale(saved);
+}
+/** Switch language in place: the page, open drawer, scroll position and drafts all survive the re-render. */
+export function switchLocale(next) {
+  if (!LOCALES[next] || next === getLocale()) return;
+  setLocale(next);
+  try { localStorage.setItem(LOCALE_KEY, next); } catch { /* storage blocked: this tab only */ }
+  requestRender();
+}
 export const state = () => ctx.store.getState();
 
 export function initStore() {

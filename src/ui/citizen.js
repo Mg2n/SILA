@@ -12,6 +12,7 @@ import { state, now, requestRender, runCitizen, checkCitizen, deviceRef } from '
 import { pill } from './components.js';
 import { voicePanel, stopVoice } from './voice.js';
 import { cityMap } from './citymap.js';
+import { langToggle, demoButton } from './shell.js';
 
 // ---------- Draft (this tab, survives reload) ----------
 const DRAFT_KEY = 'sila.citizenDraft';
@@ -62,16 +63,18 @@ function emergencyBox() {
 // ---------- Welcome ----------
 export function renderWelcome(main) {
   append(main, [
+    h('div', { class: 'welcome-tools' }, langToggle({ onDark: false }), demoButton({ onDark: false }),
+      h('a', { class: 'btn', href: '#/about', 'data-focus-key': 'welcome-about' }, icon('info', { size: 16 }), t('about.link'))),
     h('section', { class: 'hero' },
       h('h1', { text: t('welcome.title') }),
       h('p', { class: 'lead', text: t('welcome.mission') })),
     h('div', { class: 'entry-cards' },
       h('a', { class: 'entry-card', href: '#/citizen', 'data-focus-key': 'entry-citizen' },
         citizenIllustration(), h('span', { class: 'entry-title', text: t('welcome.citizenTitle') }), h('span', { class: 'muted', text: t('welcome.citizenBody') }),
-        h('span', { class: 'entry-go' }, icon('arrow', { size: 20 }))),
+        h('span', { class: 'entry-go' }, icon('arrow', { size: 20, cls: 'flip-rtl' }))),
       h('a', { class: 'entry-card', href: '#/crew', 'data-focus-key': 'entry-ambulance' },
         ambulanceCardIllustration(), h('span', { class: 'entry-title', text: t('welcome.ambulanceTitle') }), h('span', { class: 'muted', text: t('welcome.ambulanceBody') }),
-        h('span', { class: 'entry-go' }, icon('arrow', { size: 20 })))),
+        h('span', { class: 'entry-go' }, icon('arrow', { size: 20, cls: 'flip-rtl' })))),
     h('a', { class: 'staff-entry', href: '#/er', 'data-focus-key': 'entry-staff' }, icon('staff', { size: 22 }),
       h('span', {}, h('strong', { text: t('welcome.staffTitle') }), h('span', { class: 'small muted', text: ` — ${t('welcome.staffBody')}` }))),
     emergencyBox(),
@@ -248,7 +251,7 @@ function sendPayload(d, hospital) {
   const f = d.fields;
   const val = (k) => known(f[k]) || null;
   const both = f.awake === 'no' || f.breathing === 'no' ? 'no' : f.awake === 'yes' && f.breathing === 'yes' ? 'yes' : 'unknown';
-  return { destinationHospitalId: hospital.id, clientRef: d.clientRef, concern: val('concern'), ageText: val('age'), onset: val('onset'),
+  return { destinationHospitalId: hospital.id, clientRef: d.clientRef, origin: d.point, concern: val('concern'), ageText: val('age'), onset: val('onset'),
     awake: f.awake, breathing: f.breathing, awakeBreathing: both, conditions: val('conditions'), allergies: val('allergies'),
     patientCount: val('patientCount') ?? 1, location: val('location'), contact: val('contact'), accessibilityNeeds: val('assistance'),
     transcript: d.transcript || null, extractionMethod: 'demo-rule-based', transportMode: transportFor(d),
@@ -326,4 +329,29 @@ function send(d, hospital) {
     try { sessionStorage.setItem('sila.justSent', res.result.caseId); } catch { /* storage blocked */ }
     go(`citizen/case/${res.result.caseId}`);
   }
+  return res;
+}
+
+// ---------- Guided demo hooks (the demo drives the same draft and the same send() as the buttons) ----------
+const DEMO_DISTRICT = 'al-noor';
+const demoSampleText = () => t('sample.fever.text');
+function demoNearest(d) {
+  const list = rankHospitals(publicHospitals(state(), now()), d.point, transportFor(d));
+  return list.find((x) => x.nearest) ?? null;
+}
+export function citizenDemoState() {
+  const d = draft();
+  return { loaded: !!d.fields && d.transcript === demoSampleText(), reviewed: !!d.reviewed && !!d.fields };
+}
+/** Prepares (or completes) one citizen step for the guided demo; 'send' returns the engine result. */
+export function demoCitizen(kind) {
+  if (kind === 'citizenShowSamples') { showSamples = true; return null; }
+  if (kind === 'citizenLoadSample' || !citizenDemoState().loaded) { startFrom(demoSampleText()); showSamples = false; if (kind === 'citizenLoadSample') { go('citizen/review'); return null; } }
+  if (kind === 'citizenConfirmReview') { save({ reviewed: true }); requestRender(); return null; }
+  const dd = DISTRICTS.find((x) => x.id === DEMO_DISTRICT);
+  save({ reviewed: true, point: { x: dd.x, y: dd.y }, place: { kind: 'district', id: dd.id }, locationNote: null, clientRef: 'demo-citizen' });
+  const nearest = demoNearest(draft());
+  save({ hospitalId: nearest?.id ?? null });
+  if (kind === 'citizenPrepareSend') return null;
+  return nearest ? send(draft(), nearest) : null;
 }

@@ -3,7 +3,7 @@
 import { values } from '../data.js';
 import { latestEquipmentCheck, isCheckValid, describeLocation, activeTransferForCase, activeReservationForCase, deriveTransferStatus } from '../readiness.js';
 import { bedBoardStatus, careTasksForPatient, bedWorkTasks } from '../selectors.js';
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, joinText } from '../i18n.js';
 import { h, clear } from './dom.js';
 import { icon, ambulanceIllustration } from './icons.js';
 import { ctx, state, now, canSeePatient, closeDrawer, viewedRevision, markViewed } from './core.js';
@@ -16,6 +16,7 @@ import {
 } from './forms.js';
 import { openReserveForBed, openReserveForCase } from './placement.js';
 import { transferDrawer, openStepDown, openOrderDiagnostic } from './transfer.js';
+import { langToggle } from './shell.js';
 
 const CAPABILITY_KEY = { monitor: 'equipment.monitor', oxygen: 'equipment.oxygen', ventilator: 'req.ventilator', isolation: 'req.isolation' };
 const section = (title, iconName, ...children) => h('section', {}, h('h3', {}, icon(iconName, { size: 16 }), title), ...children);
@@ -33,7 +34,7 @@ export function renderDrawer(root) {
     h('div', { class: 'drawer-backdrop', onclick: closeDrawer }),
     h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'drawer-title' },
       h('header', {}, content.headIcon, h('div', {}, h('h2', { id: 'drawer-title', text: content.title }), content.sub),
-        h('div', { class: 'end' }, h('button', { type: 'button', class: 'btn ghost icon-btn', 'aria-label': t('drawer.close'), 'data-drawer-close': '', onclick: closeDrawer }, icon('close')))),
+        h('div', { class: 'end' }, langToggle({ onDark: false }), h('button', { type: 'button', class: 'btn ghost icon-btn', 'aria-label': t('drawer.close'), 'data-drawer-close': '', onclick: closeDrawer }, icon('close')))),
       h('div', { class: 'body' }, content.body)));
 }
 
@@ -95,7 +96,7 @@ function bedActions(s, bed, st, kase) {
   const vacant = bed.occupancy.status === 'vacant';
   if (st.level === 'ready') add(actionButton({ action: 'reserveBed', payload: { bedId: bed.id }, label: t('action.reserveForPatient'), kind: 'primary', iconName: 'lock', open: () => openReserveForBed(bed) }));
   if (res) {
-    add(actionButton({ action: 'confirmPlacement', payload: { bedId: bed.id, caseId: res.caseId }, label: `${t('action.confirmPlacement')} · ${s.cases[res.caseId]?.ref}`, kind: 'primary', iconName: 'check' }));
+    add(actionButton({ action: 'confirmPlacement', payload: { bedId: bed.id, caseId: res.caseId }, label: joinText([t('action.confirmPlacement'), s.cases[res.caseId]?.ref]), kind: 'primary', iconName: 'check' }));
     add(actionButton({ action: 'extendReservation', payload: { reservationId: res.id }, label: t('action.extendReservation'), iconName: 'clock', open: (seen) => openExtend(res, seen) }));
     add(actionButton({ action: 'releaseReservation', payload: { reservationId: res.id }, label: t('action.releaseReservation'), kind: 'danger', open: (seen) => openRelease(res, seen) }));
   }
@@ -130,7 +131,7 @@ export function ticketRow(s, x, extra = null) {
   const open = x.status !== 'resolved';
   return h('li', { class: ['row', open && 'overdue'] }, icon(x.kind === 'technical' ? 'wrench' : 'monitor'),
     h('div', { class: 'grow' },
-      h('strong', { text: `${x.ref} · ${tm(x.category)}` }),
+      h('strong', { text: joinText([x.ref, tm(x.category)]) }),
       h('span', { class: 'small' }, pill(open ? 'blocked' : 'ready', t(`ticket.status.${x.status}`)), ' ',
         h('span', { class: 'chip', text: t(`ticket.kind.${x.kind}`) }), h('span', { class: 'chip', text: t(`severity.${x.severity}`) })),
       h('span', { text: x.description }),
@@ -157,7 +158,7 @@ function careBlock(s, c, patient) {
   const tr = c ? activeTransferForCase(s, c.id) : null;
   return h('div', { class: 'rows' },
     facts([
-      [t('drawer.patient'), `${patient.alias}${patient.approxAge ? ` · ${patient.approxAge}` : ''}${c ? ` · ${c.ref}` : ''}`],
+      [t('drawer.patient'), joinText([patient.alias, patient.approxAge, c?.ref])],
       c ? [t('drawer.journey'), t(`journey.${c.journey}`)] : null,
       c?.disposition ? [t('disposition.decision'), t('drawer.disposition', { decision: t(`disposition.${c.disposition.decision}`) })] : null,
       tr ? [t('er.icuRequests'), t('drawer.transfer', { ref: tr.ref, status: deriveTransferStatus(tr, s, now()).label })] : null,
@@ -184,7 +185,7 @@ function caseDrawer(s, c) {
 
   const body = [
     section(t('drawer.patient'), 'person', facts([
-      [t('drawer.patient'), showP ? `${patient.alias}${patient.approxAge ? ` · ${patient.approxAge}` : ''}` : t('drawer.patientHidden')],
+      [t('drawer.patient'), showP ? joinText([patient.alias, patient.approxAge]) : t('drawer.patientHidden')],
       [t('drawer.location'), tm(describeLocation(s, patient))],
       [t('drawer.journey'), t(`journey.${c.journey}`)],
       [t('incoming.acuity'), c.triage ? t('incoming.triageValue', { p: c.triage.priority }) : t('incoming.notAssessed')],
@@ -227,7 +228,7 @@ function caseDrawer(s, c) {
     if (notice) {
       body.push(section(t('drawer.clarifications'), 'comment', clarifications.length ? h('ol', { class: 'timeline' }, clarifications.map((cm) => h('li', {},
         h('time', { datetime: cm.createdAt, text: formatTime(cm.createdAt) }),
-        h('div', {}, h('p', {}, h('strong', { text: userName(cm.authorId) }), ` · ${cm.body}`),
+        h('div', {}, h('p', {}, h('strong', { text: userName(cm.authorId) }), ' · ', h('span', { dir: 'auto', text: cm.body })),
           h('p', { class: 'small', text: cm.status === 'answered' ? t('drawer.answer', { text: cm.answer }) : t('drawer.awaitingAnswer') }))))) : emptyState(t('empty.clarifications'), 'comment')));
       body.push(section(t('drawer.timeline'), 'clock', notice.timeline.length ? h('ol', { class: 'timeline' }, [...notice.timeline].reverse().map((e) => h('li', {},
         h('time', { datetime: e.at, text: formatTime(e.at) }), h('div', {}, h('strong', { text: userName(e.by) }), ` · ${tm(e.detail)}`)))) : emptyState(t('empty.timeline'), 'clock')));
@@ -263,7 +264,7 @@ function caseActions(s, c, notice, res) {
   add(actionButton({ action: 'assignCoordinator', payload: { caseId: c.id }, label: t('action.assignCoordinator'), iconName: 'staff', open: (seen) => openAssignCoordinator(c, seen) }));
   if (['pre_hospital', 'er_waiting'].includes(loc)) {
     if (res) {
-      add(actionButton({ action: 'confirmPlacement', payload: { bedId: res.bedId, caseId: c.id }, label: `${t('action.confirmPlacement')} · ${s.beds[res.bedId].label}`, kind: 'primary', iconName: 'bed' }));
+      add(actionButton({ action: 'confirmPlacement', payload: { bedId: res.bedId, caseId: c.id }, label: joinText([t('action.confirmPlacement'), s.beds[res.bedId].label]), kind: 'primary', iconName: 'bed' }));
       add(actionButton({ action: 'extendReservation', payload: { reservationId: res.id }, label: t('action.extendReservation'), iconName: 'clock', open: (seen) => openExtend(res, seen) }));
       add(actionButton({ action: 'releaseReservation', payload: { reservationId: res.id }, label: t('action.releaseReservation'), kind: 'danger', open: (seen) => openRelease(res, seen) }));
     } else {

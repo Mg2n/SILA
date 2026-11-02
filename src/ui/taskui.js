@@ -1,7 +1,7 @@
 // Task presentation + status buttons. Next statuses come from the engine (nextTaskStatuses / completionActionFor).
 
 import { nextTaskStatuses, completionActionFor } from '../actions.js';
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, hasKey } from '../i18n.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
 import { state, now } from './core.js';
@@ -25,7 +25,7 @@ export const isOverdue = (item) => !!item.dueAt && Date.parse(item.dueAt) < Date
 
 export function ownerLine(task) {
   if (task.ownerUserId) return t('task.owner', { name: userName(task.ownerUserId) });
-  if (task.ownerTeam) return t('task.team', { team: task.ownerTeam });
+  if (task.ownerTeam) return t('task.team', { team: hasKey(`role.${task.ownerTeam}`) ? roleLabel(task.ownerTeam) : task.ownerTeam });
   return t('task.unclaimed', { role: roleLabel(task.requiredRole) });
 }
 

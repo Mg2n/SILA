@@ -9,7 +9,7 @@ import { extractIntake } from '../extract.js';
 import { VITAL_TYPES, VITAL_TYPE_KEYS, vitalProblem } from '../vitals.js';
 import { notificationsFor } from '../readiness.js';
 import { publicHospitals, rankHospitals, crewCases, crewCaseView, unitMembers } from '../selectors.js';
-import { t, tm, getLocale, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, getLocale, formatTime, formatRelative, localizeData } from '../i18n.js';
 import { h, append, nextUid } from './dom.js';
 import { icon, ambulanceIllustration, ambulanceCardIllustration } from './icons.js';
 import { state, now, currentUser, isCrew, setCurrentUser, requestRender, run, check, seenVersion, openDialog, field, toast } from './core.js';
@@ -18,6 +18,9 @@ import { voicePanel, stopVoice } from './voice.js';
 import { cityMap } from './citymap.js';
 import { hospitalItem } from './citizen.js';
 import { handoverCard, vitalsTable, vitalLabel, INTERVENTION_CHIPS, REQUIREMENT_KEYS, crewAcuityText } from './handover.js';
+import { crewDraftFields, DEMO_CREW_REF } from '../demo-script.js';
+
+const DEMO_CREW_USER = 'u-para-1';
 
 const go = (route) => { location.hash = `#/${route}`; };
 const lang = () => (getLocale() === 'ar' ? 'ar' : 'en');
@@ -104,7 +107,7 @@ function payloadFrom(d, caseId, hosp) {
   };
   if (caseId) return { caseId, ...base };
   const minutes = etaMinutes(d, hosp);
-  return { ...base, destinationHospitalId: d.destinationHospitalId, clientRef: d.clientRef,
+  return { ...base, destinationHospitalId: d.destinationHospitalId, clientRef: d.clientRef, origin: pointOf(d),
     etaAt: minutes === null ? null : new Date(Date.parse(now()) + minutes * MIN).toISOString() };
 }
 
@@ -144,7 +147,7 @@ export const renderCrewHome = withCrew((main, u) => {
       ambulanceIllustration(),
       h('div', {},
         h('h1', { text: t('crew.unit', { id: u.ambulanceId }) }),
-        h('p', { text: t('crew.crewNames', { names: unitMembers(s, u.ambulanceId).map((m) => m.name).join(', ') }) }),
+        h('p', { text: t('crew.crewNames', { names: unitMembers(s, u.ambulanceId).map((m) => localizeData(m.name)) }) }),
         h('p', { class: 'small muted', text: t('crew.signedInAs', { name: u.name }) }))),
     h('section', { class: 'panel', 'aria-labelledby': 'crew-current' },
       h('h2', { id: 'crew-current', text: t('crew.currentStatus') }),
@@ -476,11 +479,30 @@ export const renderCrewPreview = withCrew((main, u, caseId = null) => {
 
 function send(u, caseId, payload, seen) {
   const res = run('submitArrival', payload, { seen, silent: true });
-  if (!res.ok) return;
+  if (!res.ok) return res;
   stopVoice();
   discardDraft(u, caseId);
   toast(t(caseId ? 'crew.updateSent' : 'crew.sent'), 'success');
   go(`crew/case/${res.result.caseId}`);
+  return res;
+}
+
+// ---------- Guided demo hooks: fill the device draft as a crew would, then use the preview's own send() ----------
+export function demoCrew(kind) {
+  const u = state().users[DEMO_CREW_USER];
+  if (!hasDraft(u, null) || loadDraft(u, null).clientRef !== DEMO_CREW_REF) {
+    const f = crewDraftFields(now());
+    discardDraft(u, null);
+    saveDraft(u, null, { ...f, clientRef: DEMO_CREW_REF, vitals: f.vitals.map((r, i) => ({ ...r, localId: `r-demo-${i}` })), entry: blankEntry() });
+  }
+  if (kind === 'crewPrepareDraft') return null;
+  const s = state();
+  const d = loadDraft(u, null);
+  const hosp = rankedFor(s, d).find((x) => x.id === d.destinationHospitalId) ?? null;
+  return send(u, null, payloadFrom(d, null, hosp), undefined);
+}
+export function discardDemoCrewDraft() {
+  discardDraft(state().users[DEMO_CREW_USER], null);
 }
 
 // ---------- Case view after sending ----------
@@ -500,7 +522,8 @@ export const renderCrewCase = withCrew((main, u, caseId) => {
       h('dl', { class: 'facts big-facts' },
         h('dt', { text: t('case.status') }), h('dd', {}, statusPill(st)),
         h('dt', { text: t('case.destination') }), h('dd', { text: view.destination.name }),
-        h('dt', { text: t('case.eta') }), h('dd', { text: nt.etaAt ? `${formatTime(nt.etaAt)} (${formatRelative(nt.etaAt, n)}) · ${t('incoming.etaSimulated')}` : t('common.unknown') }),
+        h('dt', { text: t('case.eta') }), h('dd', {}, nt.etaAt ? `${formatTime(nt.etaAt)} (${formatRelative(nt.etaAt, n)}) · ${t('incoming.etaSimulated')}` : t('common.unknown'),
+          nt.etaSource === 'simulated' ? [' ', h('span', { class: 'chip', text: t('eta.recalculated') })] : null),
         h('dt', { text: t('crew.section.acuity') }), h('dd', { text: crewAcuityText(c.crewAcuity) })),
       st === 'canceled' ? h('p', { class: 'small', text: t('case.canceledReason', { reason: c.cancelReason ?? '' }) }) : progress(st),
       routeStrip(view, n)),
@@ -600,8 +623,11 @@ function openDestination(view, seen) {
       field({ label: t('dest.hospital'), name: 'toHospitalId', type: 'select', required: true, value: '',
         options: [{ value: '', label: t('dest.choose') }, ...others.map((x) => ({ value: x.id, label: x.name }))] }),
       field({ label: t('dest.reason'), name: 'reason', type: 'textarea', required: true, hint: t('common.reasonHint'), maxlength: 300 }),
+      field({ label: t('dest.etaOverride'), name: 'minutes', type: 'text', hint: t('dest.etaOverrideHint') }),
     ],
-    onSubmit: (d) => run('changeDestination', { caseId: view.case.id, toHospitalId: d.toHospitalId, reason: d.reason }, { seen, quiet: true }) });
+    // Without an override the engine recalculates a simulated ETA to the new hospital.
+    onSubmit: (d) => run('changeDestination', { caseId: view.case.id, toHospitalId: d.toHospitalId, reason: d.reason,
+      ...(/^\d+$/.test(d.minutes ?? '') ? { etaAt: new Date(Date.parse(now()) + Number(d.minutes) * MIN).toISOString() } : {}) }, { seen, quiet: true }) });
 }
 
 function openCancel(view, seen) {

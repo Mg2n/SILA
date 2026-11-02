@@ -6,7 +6,8 @@ import { unreadCount, selectMyWork, citizenCases } from '../selectors.js';
 import { t, tm, formatRelative } from '../i18n.js';
 import { h, clear } from './dom.js';
 import { icon } from './icons.js';
-import { ctx, state, now, currentUser, setCurrentUser, isStaff, isCrew, requestRender, run, openRecord, seenVersion, deptAccess, QUEUE_ROLES, deviceRef, defaultRoute } from './core.js';
+import { ctx, state, now, currentUser, setCurrentUser, isStaff, isCrew, requestRender, run, openRecord, seenVersion, deptAccess, QUEUE_ROLES, deviceRef, defaultRoute, switchLocale } from './core.js';
+import { getLocale, LOCALES, localizeData, isRtl } from '../i18n.js';
 import { emptyState, pill, roleLabel } from './components.js';
 import { openReset } from './forms.js';
 
@@ -38,12 +39,27 @@ export function renderTopbar(el) {
         'aria-expanded': String(ctx.ui.notifOpen), 'aria-controls': 'notif-panel', 'data-focus-key': 'bell',
         onclick: () => { ctx.ui.notifOpen = !ctx.ui.notifOpen; requestRender(); },
       }, icon('bell', { size: 20 }), unread ? h('span', { class: 'count', 'aria-hidden': 'true', text: String(unread) }) : null),
+      demoButton(),
+      langToggle(),
       h('button', { type: 'button', class: 'btn on-dark', 'data-focus-key': 'reset', onclick: openReset }, icon('reset', { size: 16 }), t('reset.button'))));
+}
+
+/** Language switch: names the other language in that language (e.g. "العربية" while in English). */
+export function langToggle({ onDark = true } = {}) {
+  const next = getLocale() === 'ar' ? 'en' : 'ar';
+  return h('button', { type: 'button', class: ['btn', onDark && 'on-dark', 'lang-toggle'], lang: next, 'data-focus-key': 'lang-toggle',
+    'aria-label': t('lang.switchTo', { lang: LOCALES[next].label }), onclick: () => switchLocale(next) },
+  icon('globe', { size: 16 }), LOCALES[next].label);
+}
+
+export function demoButton({ onDark = true } = {}) {
+  return h('button', { type: 'button', class: ['btn', onDark && 'on-dark', 'demo-btn'], 'data-focus-key': 'demo-run', onclick: () => ctx.openDemo?.() },
+    icon('play', { size: 16 }), t('demo.run'));
 }
 
 function userCard(s, u) {
   const dept = u.department ? t(`dept.${u.department}`) : t('user.hospitalWide');
-  const initials = u.name.replace(/^Dr\.\s*/, '').split(/\s+/).map((p) => p[0]).slice(0, 2).join('');
+  const initials = localizeData(u.name).replace(/^(Dr\.|د\.)\s*/, '').split(/\s+/).map((p) => p.replace(/^ال/, '')[0]).slice(0, 2).join(isRtl() ? ' ' : '');
   return h('div', { class: 'user-card', 'aria-label': t('user.active') },
     h('span', { class: 'avatar', 'aria-hidden': 'true', text: initials }),
     h('span', { class: 'who' }, h('strong', { text: u.name }), h('span', { text: t('user.dept', { role: roleLabel(u.role), dept }) }),
@@ -85,6 +101,8 @@ export function renderCrewTopbar(el) {
     h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
       h('a', { href: '#/crew', 'aria-current': ctx.ui.route === 'home' ? 'page' : null }, icon('ambulance', { size: 16 }), t('nav.crew'),
         unread ? h('span', { class: 'count-badge', 'aria-label': t('notif.buttonCount', { n: unread }), text: String(unread) }) : null)),
+    demoButton(),
+    langToggle(),
     switcher(s, u, { onCrewPage: true }));
 }
 
@@ -99,7 +117,9 @@ export function renderPublicTopbar(el) {
     h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
       h('a', { href: '#/citizen/notices', 'aria-current': ctx.ui.route === 'citizen/notices' ? 'page' : null }, icon('inbox', { size: 16 }), t('public.myNotices'),
         count ? h('span', { class: 'count-badge', text: String(count) }) : null),
-      h('a', { href: '#/er' }, icon('staff', { size: 16 }), t('public.staff'))));
+      h('a', { href: '#/er' }, icon('staff', { size: 16 }), t('public.staff'))),
+    demoButton(),
+    langToggle());
 }
 
 export function renderNotifications(root) {

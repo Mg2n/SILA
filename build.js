@@ -4,7 +4,7 @@
 // Supports the module syntax this codebase uses: `import { a, b as c } from './x.js'`, `import * as X from './x.js'`,
 // and `export function|async function|const|let|class name`. Anything else fails the build loudly.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, resolve, relative, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,7 +63,8 @@ export function build(entry, out) {
   const entryBodies = scripts.map(([, body]) => rewriteImports(body, dirname(entry), addModule));
   // The test page scans engine sources for message codes; embed them so the bundled file:// build can too.
   const sources = /tests\.html$/.test(entry)
-    ? `globalThis.__SILA_SOURCES = ${JSON.stringify(Object.fromEntries(['data.js', 'messages.js', 'permissions.js', 'readiness.js', 'actions.js', 'selectors.js', 'store.js', 'vitals.js']
+    ? `globalThis.__SILA_SOURCES = ${JSON.stringify(Object.fromEntries(['data.js', 'messages.js', 'permissions.js', 'readiness.js', 'actions.js', 'selectors.js', 'store.js', 'vitals.js',
+      ...readdirSync(join(src, 'ui')).filter((f) => f.endsWith('.js')).map((f) => `ui/${f}`)]
       .map((f) => [f, readFileSync(join(src, f), 'utf8')])))};\n` : '';
   const bundle = `const __sila_modules = Object.create(null);\n${sources}${[...modules.values()].join('\n')}\nglobalThis.SILA = __sila_modules;\n`;
 

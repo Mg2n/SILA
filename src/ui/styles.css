@@ -24,14 +24,14 @@
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgb(11 35 64 / 6%), 0 2px 8px rgb(11 35 64 / 6%);
   --shadow-lg: 0 8px 30px rgb(11 35 64 / 18%);
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Arabic", sans-serif;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Arabic", "Geeza Pro", Tahoma, sans-serif;
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { font: 14px/1.45 var(--font); color: var(--text); background: var(--bg); }
-body.staff { min-inline-size: 1000px; }
+/* Staff screens are designed for desktop but reflow down to phone width (see the responsive block at the end). */
 h1, h2, h3, h4 { margin: 0; line-height: 1.25; }
 h1 { font-size: 20px; }
 h2 { font-size: 16px; }
@@ -59,7 +59,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topnav a { display: inline-flex; align-items: center; gap: 6px; color: #dbe7f3; text-decoration: none; padding-block: 6px; padding-inline: 10px; border-radius: var(--radius-sm); }
 .topnav a[aria-current="page"] { background: rgb(255 255 255 / 14%); color: #fff; font-weight: 600; }
 .topnav a:hover { background: rgb(255 255 255 / 10%); }
-.topbar-end { margin-inline-start: auto; display: flex; align-items: center; gap: 12px; }
+.topbar-end { margin-inline-start: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.topbar .btn { white-space: nowrap; }
 .user-card { display: flex; align-items: center; gap: 10px; padding-block: 4px; padding-inline: 10px; border-radius: var(--radius-sm); background: rgb(255 255 255 / 8%); }
 .user-card .avatar { inline-size: 32px; block-size: 32px; border-radius: 50%; background: var(--teal-600); display: grid; place-items: center; font-weight: 700; }
 .user-card .who { display: flex; flex-direction: column; font-size: 12px; color: #c9d9ea; }
@@ -146,7 +147,7 @@ dl.facts dd { margin: 0; min-inline-size: 0; }
 .bed-card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: start; color: var(--text); border-inline-start-width: 5px; box-shadow: var(--shadow); }
 .bed-card:hover { border-color: var(--teal-600); }
 .bed-card.ready { border-inline-start-color: var(--green-700); }
-.bed-card.pending { border-inline-start-color: #d98a00; }
+.bed-card.pending { border-inline-start-color: #b36b00; }
 .bed-card.blocked { border-inline-start-color: var(--red-700); }
 .bed-card.reserved { border-inline-start-color: var(--teal-600); }
 .bed-card.occupied { border-inline-start-color: var(--navy-500); }
@@ -175,7 +176,7 @@ dl.facts dd { margin: 0; min-inline-size: 0; }
 .drawer-backdrop { position: fixed; inset: 0; background: rgb(11 35 64 / 28%); z-index: 40; }
 .drawer { position: fixed; inset-block: 0; inset-inline-end: 0; inline-size: min(620px, 100%); background: var(--bg); box-shadow: var(--shadow-lg); z-index: 41; display: flex; flex-direction: column; }
 .drawer > header { display: flex; align-items: center; gap: 10px; padding-block: 14px; padding-inline: 18px; background: var(--surface); border-block-end: 1px solid var(--border); }
-.drawer > header .end { margin-inline-start: auto; }
+.drawer > header .end { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; }
 .drawer .body { overflow: auto; padding: 16px 18px 40px; display: flex; flex-direction: column; gap: 14px; }
 .drawer section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
 .drawer section > h3 { display: flex; gap: 6px; align-items: center; }
@@ -231,7 +232,7 @@ blockquote.notice { margin: 0; font-style: italic; }
 .steps { display: flex; flex-direction: column; gap: 8px; padding: 0; margin: 0; list-style: none; }
 .step { border: 1px solid var(--border); border-inline-start-width: 4px; border-radius: var(--radius-sm); padding-block: 8px; padding-inline: 10px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }
 .step-done { border-inline-start-color: var(--green-700); }
-.step-current { border-inline-start-color: #d98a00; background: var(--amber-50); }
+.step-current { border-inline-start-color: #b36b00; background: var(--amber-50); }
 .step-pending { border-inline-start-color: var(--border-strong); color: var(--muted); }
 .step-stopped { border-inline-start-color: var(--red-700); background: var(--red-50); }
 .step-head { display: flex; gap: 8px; align-items: center; }
@@ -262,7 +263,6 @@ a.btn { text-decoration: none; }
 .entry-card .illus { align-self: center; }
 .entry-title { font-size: 17px; font-weight: 700; }
 .entry-go { position: absolute; inset-block-start: 16px; inset-inline-end: 16px; color: var(--teal-600); }
-[dir="rtl"] .entry-go .icon { transform: scaleX(-1); }
 .staff-entry { display: flex; gap: 10px; align-items: center; padding: 12px 14px; min-block-size: 48px; border-radius: var(--radius-sm); border: 1px dashed var(--border-strong);
   background: var(--surface); color: var(--text); text-decoration: none; }
 .emergency { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius); background: var(--red-50); border: 1px solid #f0bdb8; color: var(--red-700); }
@@ -425,7 +425,6 @@ body.crew .confirm-row input { inline-size: 26px; block-size: 26px; }
 .route-strip .amb { position: absolute; inset-block-end: 6px; inset-inline-start: calc((100% - 66px) * var(--p)); line-height: 0; }
 .route-strip .amb.moving { animation: drive var(--dur) linear forwards; }
 @keyframes drive { from { inset-inline-start: calc((100% - 66px) * var(--p)); } to { inset-inline-start: calc(100% - 66px); } }
-[dir="rtl"] .route-strip .amb svg { transform: scaleX(-1); }
 @media (prefers-reduced-motion: reduce) { .route-strip .amb.moving { animation: none; } }
 
 /* Shared handover card (ER drawer and crew preview) */
@@ -446,3 +445,84 @@ body.crew .confirm-row input { inline-size: 26px; block-size: 26px; }
 .audit-list { display: flex; flex-direction: column; padding: 0; margin: 0; list-style: none; }
 .audit-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding-block: 8px; border-block-end: 1px solid #edf1f5; }
 .audit-row time { color: var(--muted); font-size: 12px; }
+
+/* =========================================================================
+   Arabic / right-to-left (Task 6). Layout already uses logical properties; these rules cover the rest.
+   ========================================================================= */
+/* System fonts that render Arabic well — no downloads — and a little more line height for Arabic script. */
+:root[lang="ar"] { --font: "Segoe UI", "Noto Sans Arabic", "Geeza Pro", Tahoma, system-ui, sans-serif; }
+:root[lang="ar"] body { line-height: 1.7; }
+:root[lang="ar"] .small, :root[lang="ar"] .chip, :root[lang="ar"] .pill { line-height: 1.6; }
+/* IDs, numbers and times never reorder inside Arabic sentences (text parameters also carry Unicode isolates). */
+.ref, .bed-label, .num, bdi, time { unicode-bidi: isolate; }
+[dir="rtl"] .ref, [dir="rtl"] .bed-label { direction: ltr; }
+/* Directional icons mirror; maps, the route strip, clocks and illustrations do not. */
+.icon.back { transform: scaleX(-1); }
+[dir="rtl"] .icon.flip-rtl { transform: scaleX(-1); }
+[dir="rtl"] .icon.flip-rtl.back { transform: none; }
+.route-strip .track { direction: ltr; }
+/* The drawer slides in from the inline end when it opens (not on live re-renders). */
+.drawer.slide-in { animation: drawer-in 180ms ease-out; }
+[dir="rtl"] .drawer.slide-in { animation-name: drawer-in-rtl; }
+@keyframes drawer-in { from { transform: translateX(100%); } }
+@keyframes drawer-in-rtl { from { transform: translateX(-100%); } }
+
+.lang-toggle { white-space: nowrap; }
+.welcome-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.welcome-tools .btn { min-block-size: 44px; }
+.about-list { display: flex; flex-direction: column; gap: 8px; }
+.about-list li { display: flex; gap: 8px; align-items: flex-start; }
+.about-list .icon { color: var(--green-700); margin-block-start: 3px; }
+.error-page { display: flex; flex-direction: column; gap: 12px; }
+
+/* =========================================================================
+   Guided demo: presenter panel + spotlight on the real control
+   ========================================================================= */
+#demo-root { position: relative; z-index: 60; }
+.demo-spot { position: fixed; z-index: 60; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 4px var(--focus), 0 0 0 9999px rgb(11 35 64 / 38%); transition: inset-block-start 160ms ease, inset-inline-start 160ms ease, inline-size 160ms ease, block-size 160ms ease;
+  animation: demo-pulse 1.6s ease-in-out infinite; }
+@keyframes demo-pulse { 50% { box-shadow: 0 0 0 7px var(--focus), 0 0 0 9999px rgb(11 35 64 / 38%); } }
+.demo-target { outline: 3px solid var(--focus) !important; outline-offset: 3px; }
+.demo-panel { position: fixed; z-index: 61; inline-size: min(380px, calc(100vw - 24px)); max-block-size: calc(100vh - 24px); overflow: auto;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; }
+.demo-head { display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-inline: 10px; background: var(--navy-900); color: #ffffff; border-start-start-radius: var(--radius); border-start-end-radius: var(--radius); }
+.demo-head .grow { flex: 1; font-size: 13px; }
+.demo-grip { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 32px; min-block-size: 32px; border: 1px solid #4b6a8f; border-radius: 6px; background: transparent; color: #ffffff; cursor: grab; }
+.demo-progress { block-size: 6px; background: var(--border); }
+.demo-progress span { display: block; block-size: 100%; background: var(--teal-600); }
+.demo-body { display: flex; flex-direction: column; gap: 6px; padding-block: 10px 4px; padding-inline: 14px; }
+.demo-body h2 { font-size: 16px; }
+.demo-actor { display: flex; gap: 6px; align-items: center; color: var(--navy-700); }
+.demo-msg { display: flex; gap: 6px; align-items: flex-start; padding-block: 6px; padding-inline: 8px; border-radius: var(--radius-sm); font-size: 13px; }
+.demo-msg.info { background: var(--teal-50); }
+.demo-msg.ok { background: var(--green-50); color: var(--green-700); }
+.demo-msg.warn { background: var(--amber-50); color: var(--amber-700); }
+.demo-msg.error { background: var(--red-50); color: var(--red-700); }
+.demo-actions { display: flex; gap: 8px; padding: 12px 14px 14px; flex-wrap: wrap; }
+.demo-actions .btn { flex: 1 1 auto; justify-content: center; min-block-size: 44px; }
+.demo-paths { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* =========================================================================
+   Responsive staff screens: reflow on narrow screens instead of scrolling sideways
+   ========================================================================= */
+@media (max-width: 760px) {
+  body.staff .topbar { gap: 8px; padding-inline: 12px; }
+  body.staff .topnav { flex-wrap: wrap; margin-inline-start: 0; inline-size: 100%; }
+  body.staff .topbar-end { flex-wrap: wrap; inline-size: 100%; gap: 8px; }
+  body.staff .switcher { flex: 1 1 100%; display: flex; flex-direction: column; gap: 2px; }
+  body.staff .switcher select { inline-size: 100%; max-inline-size: 100%; }
+  body.staff .user-card { flex: 1 1 100%; }
+  body.staff main { padding-inline: 12px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .action-grid { grid-template-columns: 1fr; }
+  .bed-grid, .room-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .filters { grid-template-columns: 1fr; }
+  .audit-row { grid-template-columns: 1fr; gap: 2px; }
+  .card-head { flex-wrap: wrap; }
+  .card-head .end { margin-inline-start: 0; justify-content: flex-start; }
+  .action-row { flex-wrap: wrap; }
+  table.data { display: block; overflow-x: auto; }
+  .filters .field, .filters select, .filters input { min-inline-size: 0; inline-size: 100%; }
+  .pill { white-space: normal; max-inline-size: 100%; }
+}

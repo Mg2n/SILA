@@ -3,7 +3,7 @@
 
 import { deriveBedReadiness, deriveTransferStatus } from '../readiness.js';
 import { housekeepingQueue, maintenanceQueue, biomedQueue, diagnosticsQueue, porterJobs } from '../selectors.js';
-import { t, tm } from '../i18n.js';
+import { t, tm, joinText } from '../i18n.js';
 import { h, append } from './dom.js';
 import { icon } from './icons.js';
 import { state, now, currentUser, canSeePatient } from './core.js';
@@ -60,9 +60,9 @@ export function renderQueue(main) {
     const q = diagnosticsQueue(s, user, n);
     const row = (task) => {
       const c = s.cases[task.linked.caseId];
-      const who = c && canSeePatient(user.hospitalId) ? `${s.patients[c.patientId]?.alias} · ${c.ref}` : (c?.ref ?? '');
+      const who = c && canSeePatient(user.hospitalId) ? joinText([s.patients[c.patientId]?.alias, c.ref]) : (c?.ref ?? '');
       return taskRow(task, { extra: [
-        h('span', { class: 'small muted', text: `${who} · ${location(s, task.linked.bedId)}` }),
+        h('span', { class: 'small muted', text: joinText([who, location(s, task.linked.bedId)]) }),
         task.orderedBy ? h('span', { class: 'small muted', text: t('queue.orderedBy', { name: userName(task.orderedBy), reason: task.orderReason ?? '' }) }) : null,
       ] });
     };

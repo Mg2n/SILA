@@ -4,7 +4,7 @@
 import { values, DIAGNOSTIC_TYPES } from '../data.js';
 import { deriveTransferStatus, forecastReadyTime } from '../readiness.js';
 import { transferSteps, icuBeds, bedBoardStatus } from '../selectors.js';
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, joinText } from '../i18n.js';
 import { h, nextUid } from './dom.js';
 import { icon } from './icons.js';
 import { ctx, state, now, check, canSeePatient, openDialog, field, run, requestRender } from './core.js';
@@ -46,7 +46,7 @@ export function transferDrawer(s, tr) {
         ' ', h('span', { class: 'small muted', text: tm(st.reason) })),
       st.ownerRole ? h('p', { class: 'small', text: t('transfer.nextOwner', { owner: `${roleLabel(st.ownerRole)}${st.ownerUser ? `: ${userName(st.ownerUser)}` : ''}` }) }) : null,
       h('dl', { class: 'facts' },
-        h('dt', { text: t('transfer.patient') }), h('dd', { text: showP ? `${s.patients[tr.patientId].alias} · ${c.ref}` : c.ref }),
+        h('dt', { text: t('transfer.patient') }), h('dd', { text: showP ? joinText([s.patients[tr.patientId].alias, c.ref]) : c.ref }),
         h('dt', { text: t('transfer.route') }), h('dd', { text: t('transfer.routeValue', { from: s.beds[tr.fromBedId]?.label ?? t('er.inEr'), to: target?.label ?? t('transfer.toUnknown') }) }),
         h('dt', { text: t('transfer.requirements') }), h('dd', {}, reqChips(tr.requirements)),
         showP ? h('dt', { text: t('transfer.reasonLabel') }) : null, showP ? h('dd', { text: tr.reason }) : null,
@@ -110,7 +110,7 @@ function stepActions(s, tr, step, n) {
         actionButton({ action: 'confirmDropoff', payload: { transferId: tr.id }, label: t('action.confirmDropoff'), small: true }),
         actionButton({ action: 'confirmArrival', payload: { transferId: tr.id }, label: t('action.confirmIcuArrival'), kind: 'primary', small: true }));
     case 'placed':
-      return bed ? row(actionButton({ action: 'confirmPlacement', payload: { bedId: bed.id, caseId: c.id }, label: `${t('action.confirmPlacement')} · ${bed.label}`, kind: 'primary', small: true })) : null;
+      return bed ? row(actionButton({ action: 'confirmPlacement', payload: { bedId: bed.id, caseId: c.id }, label: joinText([t('action.confirmPlacement'), bed.label]), kind: 'primary', small: true })) : null;
     default:
       return null;
   }
@@ -148,7 +148,7 @@ export function openConfirmCapacity(tr, seen) {
         const id = nextUid('cap');
         return h('div', { class: 'choice' },
           h('input', { type: 'radio', id, name: 'bedId', value: o.b.id, disabled: !o.ok, checked: o.ok && o.b.id === suggested, 'aria-describedby': o.ok ? null : `${id}-why` }),
-          h('label', { for: id }, h('span', { text: `${o.b.label} · ${o.b.zone} ` }), pill(o.level),
+          h('label', { for: id }, h('span', { text: `${joinText([o.b.label, o.b.zone])} ` }), pill(o.level),
             o.b.id === suggested ? h('span', { class: 'chip', text: t('capacity.suggested') }) : null,
             o.ok ? null : h('span', { class: 'why', id: `${id}-why`, text: ` — ${tm(o.reason)}` })));
       })),

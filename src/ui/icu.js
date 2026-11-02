@@ -3,7 +3,7 @@
 
 import { deriveTransferStatus } from '../readiness.js';
 import { icuDashboard, icuBeds, ICU_TILE_KEYS } from '../selectors.js';
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, joinText } from '../i18n.js';
 import { h, append } from './dom.js';
 import { icon } from './icons.js';
 import { ctx, state, now, currentUser, canSeePatient, requestRender } from './core.js';
@@ -55,7 +55,7 @@ function incomingPanel(s, hId, n, ids) {
     const reqs = ['isolation', 'ventilator', 'monitor'].filter((k) => tr.requirements?.[k]);
     return h('article', { class: ['card', highlightClass('transfer', tr.id)], 'aria-label': tr.ref },
       h('div', { class: 'card-head' }, icon('transfer', { size: 22 }),
-        h('div', { class: 'title' }, h('h3', { class: 'ref', text: tr.ref }), h('span', { class: 'small muted', text: `${who} · ${c.ref}` })),
+        h('div', { class: 'title' }, h('h3', { class: 'ref', text: tr.ref }), h('span', { class: 'small muted', text: joinText([who, c.ref]) })),
         h('div', { class: 'end' }, pill(tr.status === 'requested' ? 'pending' : st.key === 'capacity' ? 'pending' : 'neutral', tm(st.label), 'transfer'))),
       h('dl', { class: 'facts' },
         h('dt', { text: t('transfer.route') }), h('dd', { text: t('transfer.routeValue', { from: s.beds[tr.fromBedId]?.label ?? t('er.inEr'), to: s.beds[tr.targetBedId]?.label ?? t('transfer.toUnknown') }) }),
@@ -78,7 +78,7 @@ function overduePanel(s, ids, n) {
   return panel(t('icu.overdue'), 'alert', items.length, items.length ? h('ul', { class: 'rows' }, items.map((x) => {
     const bedId = x.entity === 'task' ? x.linked.bedId : x.bedId;
     return h('li', { class: 'row overdue' }, icon('alert'),
-      h('div', { class: 'grow' }, h('strong', { text: x.entity === 'task' ? tm(x.title) : `${x.ref} · ${tm(x.category)}` }),
+      h('div', { class: 'grow' }, h('strong', { text: x.entity === 'task' ? tm(x.title) : joinText([x.ref, tm(x.category)]) }),
         h('span', { class: 'small' }, pill('blocked', t('task.overdue'), 'clock'), ' ', t('task.due', { time: formatTime(x.dueAt), rel: formatRelative(x.dueAt, n) }))),
       bedId ? uiButton(t('action.openBed', { bed: s.beds[bedId]?.label }), openDrawer('bed', bedId), { small: true }) : null);
   })) : emptyState(t('empty.overdue'), 'check'));

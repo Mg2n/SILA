@@ -1,12 +1,14 @@
 // Shared widgets. Permission state always comes from the engine (preflight → can()), never from the UI.
 
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, localizeData } from '../i18n.js';
 import { commentsFor, historyFor } from '../selectors.js';
 import { h, nextUid } from './dom.js';
 import { icon } from './icons.js';
 import { ctx, state, now, check, seenVersion, run, currentUser } from './core.js';
 
-export const userName = (id) => (id ? state().users[id]?.name ?? id : t('common.unassigned'));
+const PREFLIGHT_COMMENT = '…';
+
+export const userName = (id) => (id ? localizeData(state().users[id]?.name ?? id) : t('common.unassigned'));
 export const roleLabel = (role) => (role ? t(`role.${role}`) : '');
 
 const LEVEL_ICON = { ready: 'check', pending: 'clock', blocked: 'alert', reserved: 'lock', occupied: 'person', urgent: 'alert', neutral: 'info' };
@@ -103,7 +105,8 @@ export function commentsSection(targetType, targetId) {
   h('label', { for: id, text: t('drawer.commentLabel') }),
   h('textarea', { id, name: 'text', rows: 2, maxlength: 500, 'data-preserve': `comment:${targetType}:${targetId}`, 'aria-describedby': `${id}-hint` }),
   h('span', { class: 'hint', id: `${id}-hint`, text: t('drawer.commentHint') }),
-  h('div', {}, actionSubmit('addComment', { targetType, targetId, text: 'x' }, t('drawer.commentSubmit'))));
+  // The permission preflight needs a non-empty comment; this placeholder is never shown or sent.
+  h('div', {}, actionSubmit('addComment', { targetType, targetId, text: PREFLIGHT_COMMENT }, t('drawer.commentSubmit'))));
   return [
     list.length ? h('ol', { class: 'timeline' }, list.map((c) => h('li', {},
       h('time', { datetime: c.createdAt, text: formatTime(c.createdAt) }),

@@ -3,7 +3,7 @@
 // vital signs are shown as entered (value, unit, time) and are never interpreted, flagged or scored.
 
 import { formatVitalValue } from '../vitals.js';
-import { t, hasKey, formatTime, formatRelative } from '../i18n.js';
+import { t, hasKey, formatTime, formatRelative, localizeData } from '../i18n.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
 import { pill, userName } from './components.js';
@@ -76,7 +76,7 @@ export function handoverCard(d, { onEdit = null, now } = {}) {
       : h('p', { class: 'small muted', text: t('common.none') })),
     block('requirements', t('drawer.requirements'), 'bed',
       reqs.length ? h('ul', { class: 'chip-list' }, reqs.map((k) => h('li', { class: 'chip' }, icon('check', { size: 14 }), t(`req.${k}`)))) : null,
-      d.receivingRequirements ? h('p', { dir: 'auto', text: `${t('req.other')}: ${d.receivingRequirements}` }) : null,
+      d.receivingRequirements ? h('p', { dir: 'auto', text: `${t('req.other')}: ${localizeData(d.receivingRequirements)}` }) : null,
       !reqs.length && !d.receivingRequirements ? h('p', { class: 'small muted', text: t('common.none') }) : null),
     block('notes', t('drawer.crewNotes'), 'mic', d.crewNotes ? h('blockquote', { class: 'transcript', dir: 'auto', text: d.crewNotes }) : h('p', { class: 'small muted', text: t('common.none') })));
 }

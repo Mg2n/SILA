@@ -1,4 +1,8 @@
 // Minimal DOM builder. Text is always set as text (never parsed as HTML); only icons.js markup is parsed.
+// Text passes through localizeData(): an exact seeded demo string (a hospital, a staff name, a demo patient's reported
+// text) is shown in the viewer's language; anything a person typed is shown exactly as typed.
+
+import { localizeData } from '../i18n.js';
 
 const BOOLEAN_PROPS = ['disabled', 'hidden', 'required', 'checked', 'selected', 'open', 'multiple'];
 
@@ -7,7 +11,7 @@ export function h(tag, attrs = {}, ...children) {
   for (const [k, v] of Object.entries(attrs ?? {})) {
     if (v === undefined || v === null || v === false) continue;
     if (k === 'class') el.className = Array.isArray(v) ? v.filter(Boolean).join(' ') : v;
-    else if (k === 'text') el.textContent = v;
+    else if (k === 'text') el.textContent = localizeData(v);
     else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (BOOLEAN_PROPS.includes(k)) el[k] = Boolean(v);
     else if (k === 'value') el.value = v;
@@ -20,7 +24,7 @@ export function h(tag, attrs = {}, ...children) {
 export function append(el, children) {
   for (const c of children.flat(Infinity)) {
     if (c === null || c === undefined || c === false) continue;
-    el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    el.append(c instanceof Node ? c : document.createTextNode(String(localizeData(c))));
   }
   return el;
 }

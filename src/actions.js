@@ -14,6 +14,7 @@ import {
 } from './messages.js';
 import { can } from './permissions.js';
 import { vitalProblem, normalizeReading } from './vitals.js';
+import { simulatedTrip } from './geo.js';
 import {
   deriveBedReadiness, reservationState, activeReservationForBed, activeReservationForCase, openTasksFor, openTicketsForBed,
   latestEquipmentCheck, isCheckValid, confirmedStaffing, activeTransferForCase, PHYSICAL_BLOCKERS, compatibilityError,
@@ -255,6 +256,7 @@ const transferScope = (s, t) => ({ entity: 'transferRequest', hospitalId: t.hosp
 const hospitalName = (s, id) => s.hospitals[id]?.shortName ?? id;
 const nonEmpty = (v) => typeof v === 'string' && v.trim().length > 0;
 const validIso = (v) => typeof v === 'string' && !Number.isNaN(Date.parse(v));
+const validPoint = (v) => !!v && Number.isFinite(v.x) && Number.isFinite(v.y);
 // A list of blockers for an error message: "description (owner: Role)" items.
 const blockerItems = (blockers) => blockers.map((b) => msg('blockerItem', { description: b.description, owner: ROLE_MSG[b.ownerRole] }));
 const blockerTypes = (blockers) => blockers.map((b) => BLOCKER_TYPE_MSG[b.type]);
@@ -421,6 +423,7 @@ action('submitArrival', {
     if (p.sex !== undefined && p.sex !== null && !SEXES.includes(p.sex)) return msg('err.sex');
     if (p.approxAge !== undefined && p.approxAge !== null && !(Number.isInteger(p.approxAge) && p.approxAge >= 0 && p.approxAge <= 120)) return msg('err.approxAge');
     if (p.vitals !== undefined && !Array.isArray(p.vitals)) return msg('err.vitalType');
+    if (p.origin !== undefined && p.origin !== null && !validPoint(p.origin)) return msg('err.origin');
     if (c) {
       if (c.status !== 'active') return msg('err.caseClosedForUpdate', { ref: c.ref, status: CASE_STATUS_MSG[c.status] });
       if (patientOf(s, c).location.kind !== 'pre_hospital') return msg('err.caseArrivedUpdate', { ref: c.ref });
@@ -499,6 +502,7 @@ action('submitArrival', {
       reported: { ageText: null, onset: null, awake: 'unknown', breathing: 'unknown', awakeBreathing: 'unknown', conditions: null, allergies: null, patientCount: 1,
         location: null, contact: null, accessibilityNeeds: null, ...pick(p, REPORTED_FIELDS) },
       transcript: p.transcript ?? null, extractionMethod: p.extractionMethod ?? (crew ? 'crew-entered' : 'manual'),
+      origin: p.origin ? { x: p.origin.x, y: p.origin.y } : null, etaSource: p.etaAt ? 'reported' : null,
       clinicallyVerified: false, handover, revision: 1, updates: [],
       timeline: [{ at: tx.now, by: actor.id, event: 'submitted', detail: msg('tl.sent', { hospital: hospitalName(tx.s, p.destinationHospitalId) }) }],
     }, 'an');
@@ -563,7 +567,7 @@ action('updateETA', {
   apply: (tx, c, p) => {
     const n = tx.s.arrivalNotices[c.noticeId];
     const prev = n.etaAt;
-    tx.update(n, { etaAt: p.etaAt, status: p.enRoute && ['submitted', 'acknowledged'].includes(n.status) ? 'en_route' : n.status });
+    tx.update(n, { etaAt: p.etaAt, etaSource: 'reported', status: p.enRoute && ['submitted', 'acknowledged'].includes(n.status) ? 'en_route' : n.status });
     tx.timeline(n, 'eta_updated', msg('tl.eta', { from: prev ? iso(prev) : msg('common.unknownLower'), to: iso(p.etaAt), reason: p.reason ? msg('tl.reasonSuffix', { reason: p.reason }) : NO_TEXT }));
     if (p.enRoute && c.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[c.ambulanceAssignmentId], { status: 'en_route' });
     return { summary: msg('audit.eta', { ref: c.ref, eta: iso(p.etaAt) }) };
@@ -613,6 +617,13 @@ action('respondClarification', {
   },
 });
 
+function redirectEta(s, notice, fromHospitalId, toHospitalId, now) {
+  const origin = notice.origin ?? s.hospitals[fromHospitalId]?.position;
+  const mode = notice.transportMode === 'ambulance' ? 'ambulance' : notice.transportMode ?? 'unknown';
+  const trip = simulatedTrip(origin, s.hospitals[toHospitalId].position, mode);
+  return new Date(Date.parse(now) + trip.minutes * 60000).toISOString();
+}
+
 action('changeDestination', {
   target: (s, p) => find(s, 'case', p.caseId),
   scope: (s, c, p) => caseScope(s, c, p),
@@ -622,6 +633,7 @@ action('changeDestination', {
     if (!s.hospitals[p.toHospitalId]) return msg('err.chooseNewDestination');
     if (p.toHospitalId === c.destinationHospitalId) return msg('err.alreadyHeading');
     if (!nonEmpty(p.reason)) return msg('err.reasonRequiredDestination');
+    if (p.etaAt !== undefined && p.etaAt !== null && !validIso(p.etaAt)) return msg('err.etaInvalid');
     return null;
   },
   apply: (tx, c, p, actor) => {
@@ -636,8 +648,12 @@ action('changeDestination', {
     c.destinationHistory = [...c.destinationHistory, { hospitalId: p.toHospitalId, at: tx.now, by: actor.id, reason: p.reason, from }];
     const n = tx.s.arrivalNotices[c.noticeId];
     if (n) {
-      tx.update(n, { acknowledged: null, status: n.status === 'acknowledged' ? 'submitted' : n.status });
+      // New ETA: the crew's own estimate if given, otherwise simulated from where the vehicle set off (or, when that is
+      // unknown, from the hospital it was heading to) to the new hospital. Always labelled "Simulated" in the UI.
+      const eta = p.etaAt ?? redirectEta(tx.s, n, from, p.toHospitalId, tx.now);
+      tx.update(n, { acknowledged: null, status: n.status === 'acknowledged' ? 'submitted' : n.status, etaAt: eta, etaSource: p.etaAt ? 'reported' : 'simulated' });
       tx.timeline(n, 'destination_changed', msg('tl.destinationChanged', { from: hospitalName(tx.s, from), to, reason: p.reason }));
+      tx.timeline(n, 'eta_updated', p.etaAt ? msg('tl.etaCrew', { eta: iso(eta) }) : msg('tl.etaRecalculated', { eta: iso(eta) }));
     }
     if (c.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[c.ambulanceAssignmentId], { destinationHospitalId: p.toHospitalId });
     return { summary: msg('audit.destinationChanged', { ref: c.ref, from: hospitalName(tx.s, from), to }), reason: p.reason, from, releasedReservation: res?.id ?? null };

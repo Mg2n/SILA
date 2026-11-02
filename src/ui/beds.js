@@ -3,7 +3,7 @@
 import { values } from '../data.js';
 import { latestEquipmentCheck, isCheckValid, deriveTransferStatus } from '../readiness.js';
 import { bedBoardStatus } from '../selectors.js';
-import { t, tm, formatTime, formatDuration } from '../i18n.js';
+import { t, tm, formatTime, formatDuration, localizeData } from '../i18n.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
 import { ctx, state, canSeePatient, requestRender } from './core.js';
@@ -30,7 +30,7 @@ export function bedCard(s, b, n) {
     'aria-label': `${t('bed.open', { bed: b.label })} — ${t(`level.${st.level}`)}`, onclick: openDrawer('bed', b.id),
   },
   h('span', { class: 'bed-head' },
-    h('span', {}, h('span', { class: 'bed-label', text: b.label }), h('span', { class: 'small muted', text: ` · ${b.zone}` })),
+    h('span', {}, h('span', { class: 'bed-label', text: b.label }), h('span', { class: 'small muted', text: ` · ${localizeData(b.zone)}` })),
     h('span', { class: 'indicators' }, st.urgent ? pill('urgent', t('bed.urgent')) : null, pill(st.level))),
   kase?.stepDown?.flagged ? h('span', { class: 'indicators' }, pill('reserved', t('bed.expectedFree'), 'clock')) : null,
   transitTr && ['in_transit', 'arrived'].includes(transitTr.status)

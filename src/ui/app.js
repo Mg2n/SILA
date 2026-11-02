@@ -2,11 +2,13 @@
 
 import { t, dir, getLocale } from '../i18n.js';
 import { h, clear } from './dom.js';
-import { ctx, initStore, requestRender, now, closeDrawer, currentUser, routeAllowed, defaultRoute } from './core.js';
+import { ctx, initStore, initLocale, requestRender, now, closeDrawer, currentUser, routeAllowed, defaultRoute } from './core.js';
 import { renderTopbar, renderNotifications, renderPublicTopbar, renderCrewTopbar } from './shell.js';
 import { renderWelcome, renderCitizenStart, renderCapture, renderReview, renderHospitals } from './citizen.js';
 import { renderCrewHome, renderCrewForm, renderCrewPreview, renderCrewCase } from './crew.js';
 import { renderAdmin } from './admin.js';
+import { renderAbout } from './about.js';
+import { initDemo } from './demo.js';
 import { renderCase, renderNotices } from './notices.js';
 import { renderEr } from './er.js';
 import { renderTasks } from './tasks.js';
@@ -24,6 +26,7 @@ const PUBLIC = {
   'citizen/hospitals': { render: renderHospitals, title: 'hospitals.title' },
   'citizen/notices': { render: renderNotices, title: 'notices.title' },
   'citizen/case': { render: (main, id) => renderCase(main, id), title: 'notices.title' },
+  about: { render: renderAbout, title: 'about.title' },
 };
 // Ambulance crew pages (mobile-first; a crew member signs in through the role switcher or the crew sign-in screen).
 const CREW = {
@@ -52,12 +55,17 @@ const TITLE_KEY = { er: 'nav.er', icu: 'nav.icu', tasks: 'nav.tasks', transport:
 const el = (id) => document.getElementById(id);
 
 // Live re-renders replace DOM nodes; keep focus, typed text and drawer scroll where the user left them.
+let pendingFocusKey = null;
 function captureView() {
   const active = document.activeElement;
   // data-model-backed fields already save every keystroke, so only their focus and cursor are restored, never the value.
   const preserved = [...document.querySelectorAll('[data-preserve]')].map((x) => ({ key: x.dataset.preserve, value: x.value, start: x.selectionStart, end: x.selectionEnd, modelBacked: 'modelBacked' in x.dataset }));
   return {
-    focusKey: active?.dataset?.focusKey ?? null,
+    // A control that was disabled during the last render (e.g. "Use my location" while locating) keeps its claim on focus.
+    focusKey: active?.dataset?.focusKey ?? (active === document.body || !active ? pendingFocusKey : null),
+    // If the focused control disappears (e.g. "Acknowledge" once done), focus moves to another control in its card.
+    fallbackKey: [...(active?.closest?.('.card, .notice-card, .panel, .drawer, .ho-section')?.querySelectorAll('[data-focus-key]') ?? [])]
+      .find((e) => e !== active && !e.disabled)?.dataset.focusKey ?? null,
     preserveFocus: active?.dataset?.preserve ?? null,
     preserved,
     drawerScroll: document.querySelector('.drawer .body')?.scrollTop ?? 0,
@@ -80,14 +88,38 @@ function restoreView(v, drawerJustOpened) {
     document.querySelector('[data-drawer-close]')?.focus();
   } else if (v.focusKey && !v.preserveFocus) {
     const target = document.querySelector(`[data-focus-key="${CSS.escape(v.focusKey)}"]`);
-    if (target && !target.disabled) target.focus({ preventScroll: true });
+    if (target && !target.disabled) { target.focus({ preventScroll: true }); pendingFocusKey = null; } else if (target) pendingFocusKey = v.focusKey;
+    else if (v.fallbackKey) document.querySelector(`[data-focus-key="${CSS.escape(v.fallbackKey)}"]`)?.focus({ preventScroll: true });
   }
 }
 
 let lastDrawerKey = null;
 let lastRoute = null;
+// A page that throws must not take the app down: show a friendly fallback (stored demo data is never touched).
 function render() {
   const view = captureView();
+  try {
+    renderRoute(view);
+  } catch (err) {
+    console.error('[SILA] render failed', err);
+    renderError();
+  }
+  ctx.renderOverlay?.();
+}
+
+function renderError() {
+  ctx.ui.drawer = null;
+  clear(el('drawer-root'));
+  for (const id of ['topbar', 'main', 'footer']) el(id).inert = false;
+  clear(el('main')).append(h('section', { class: 'panel error-page', role: 'alert' },
+    h('h1', { text: t('error.title') }),
+    h('p', { text: t('error.body') }),
+    h('div', { class: 'step-actions' },
+      h('button', { type: 'button', class: 'btn big primary', 'data-focus-key': 'error-reload', onclick: () => location.reload() }, t('error.reload')),
+      h('a', { class: 'btn big', href: '#/welcome' }, t('error.home')))));
+}
+
+function renderRoute(view) {
   const route = resolveRoute();
   const routeKey = `${route.key}/${route.param ?? ''}`;
   const changed = routeKey !== lastRoute;
@@ -95,6 +127,7 @@ function render() {
   ctx.ui.route = route.key;
   document.documentElement.lang = getLocale();
   document.documentElement.dir = dir();
+  renderStatic();
   document.body.classList.toggle('public', route.family !== 'staff');
   document.body.classList.toggle('crew', route.family === 'crew');
   document.body.classList.toggle('staff', route.family === 'staff');
@@ -124,25 +157,28 @@ function render() {
   const drawerKey = ctx.ui.drawer ? `${ctx.ui.drawer.type}:${ctx.ui.drawer.id}` : null;
   const drawerOpen = !!drawerKey && !!document.querySelector('.drawer');
   for (const id of ['topbar', 'main', 'footer']) el(id).inert = drawerOpen;
-  restoreView(view, drawerOpen && drawerKey !== lastDrawerKey);
+  const drawerJustOpened = drawerOpen && drawerKey !== lastDrawerKey;
+  if (drawerJustOpened) document.querySelector('.drawer')?.classList.add('slide-in'); // animate only when it opens
+  restoreView(view, drawerJustOpened);
   lastDrawerKey = drawerOpen ? drawerKey : null;
 }
 
+// Static chrome (skip link, footer, toast region) is re-rendered too, so a language switch updates it in place.
 function renderStatic() {
-  const skip = el('skip-link');
-  skip.textContent = t('app.skipToMain');
-  skip.addEventListener('click', (e) => { e.preventDefault(); el('main').focus(); }); // keep the route hash intact
+  el('skip-link').textContent = t('app.skipToMain');
   clear(el('footer')).append(
     h('p', { text: t('app.simulatedNote') }),
     h('p', { text: t('app.persistenceNote') }),
-    h('p', { text: t('app.notEmergency') }));
+    h('p', {}, t('app.notEmergency'), ' ', h('a', { href: '#/about', 'data-focus-key': 'footer-about' }, t('about.link'))));
   el('toasts').setAttribute('aria-label', t('toast.region'));
 }
 
 export function boot() {
   const store = initStore();
+  initLocale();
   ctx.render = render;
-  renderStatic();
+  el('skip-link').addEventListener('click', (e) => { e.preventDefault(); el('main').focus(); }); // keep the route hash intact
+  initDemo();
   store.subscribe((_, info) => {
     if (info.source !== 'local') ctx.ui.lastRemoteAt = now();
     requestRender();

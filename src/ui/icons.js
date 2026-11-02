@@ -4,6 +4,9 @@ import { svg } from './dom.js';
 
 const P = {
   logo: '<path d="M4 12h4l2-5 4 10 2-5h4"/><circle cx="12" cy="12" r="10"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"/>',
+  play: '<path d="M7 4.5v15l12-7.5z"/>',
+  chevron: '<path d="M9 5l7 7-7 7"/>',
   ambulance: '<path d="M2 16V8a1 1 0 0 1 1-1h10v9"/><path d="M13 10h4l3 3v3h-7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M7 9.5v3M5.5 11h3"/>',
   person: '<circle cx="12" cy="7" r="3.5"/><path d="M5 21v-1.5A5.5 5.5 0 0 1 10.5 14h3a5.5 5.5 0 0 1 5.5 5.5V21"/>',
   bed: '<path d="M3 18V7M21 18v-5a3 3 0 0 0-3-3h-7v6"/><path d="M3 15h18"/><circle cx="7" cy="11.5" r="1.8"/>',

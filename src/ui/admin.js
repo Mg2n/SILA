@@ -5,7 +5,7 @@ import { values } from '../data.js';
 import { can } from '../permissions.js';
 import { ACTION_NAMES } from '../actions.js';
 import { auditLog } from '../selectors.js';
-import { t, tm, formatDateTime } from '../i18n.js';
+import { t, tm, formatDateTime, joinText } from '../i18n.js';
 import { h, append, nextUid } from './dom.js';
 import { icon } from './icons.js';
 import { state, currentUser, requestRender } from './core.js';
@@ -77,7 +77,7 @@ function auditRow(s, e) {
     h('time', { datetime: e.at, text: formatDateTime(e.at) }),
     h('div', {},
       h('p', {}, h('strong', { text: tm(e.summary) })),
-      h('p', { class: 'small muted', text: `${e.actorRole ? t('admin.by', { name: e.actorName ?? userName(e.actorId), role: roleLabel(e.actorRole) }) : e.actorName ?? userName(e.actorId)} · ${t(`auditAction.${e.action}`)}` }),
+      h('p', { class: 'small muted', text: joinText([e.actorRole ? t('admin.by', { name: e.actorName ?? userName(e.actorId), role: roleLabel(e.actorRole) }) : e.actorName ?? userName(e.actorId), t(`auditAction.${e.action}`)]) }),
       e.reason ? h('p', { class: 'small', dir: 'auto', text: t('admin.reason', { text: e.reason }) }) : null,
       Array.isArray(e.details) && e.details.length ? h('p', { class: 'small', text: t('admin.changes', { list: e.details.map((ch) => changeText(ch, vitals)).join('; ') }) }) : null));
 }

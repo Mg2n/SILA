@@ -1,7 +1,7 @@
 // "My tasks": open work for the active account's role, with status updates through dispatch.
 
 import { selectMyWork } from '../selectors.js';
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, joinText } from '../i18n.js';
 import { h, append } from './dom.js';
 import { icon } from './icons.js';
 import { ctx, state, now, currentUser, canSeePatient, requestRender } from './core.js';
@@ -39,7 +39,7 @@ export function renderTasks(main) {
         ? h('ul', { class: 'rows' }, work.tickets.map((x) => h('li', { class: ['row', isOverdue(x) && 'overdue'] },
           icon(x.kind === 'technical' ? 'wrench' : 'monitor'),
           h('div', { class: 'grow' },
-            h('strong', { text: `${x.ref} · ${tm(x.category)} · ${s.beds[x.bedId]?.label}` }),
+            h('strong', { text: joinText([x.ref, tm(x.category), s.beds[x.bedId]?.label]) }),
             h('span', { class: 'small' }, pill('blocked', t(`ticket.status.${x.status}`), 'alert'), ' ', h('span', { class: 'chip', text: t(`severity.${x.severity}`) }),
               isOverdue(x) ? pill('blocked', t('task.overdue'), 'clock') : null),
             h('span', { text: x.description }),

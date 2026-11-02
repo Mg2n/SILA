@@ -9,12 +9,13 @@ import {
 } from './readiness.js';
 import { dispatch, memoryEngine, targetOf, preflight, nextTaskStatuses, completionActionFor, ACTION_NAMES } from './actions.js';
 import { deriveErCounts, erDashboard, bedBoardStatus, commentsFor, historyFor, selectMyWork, icuDashboard, transferSteps, housekeepingQueue, biomedQueue, diagnosticsQueue, porterJobs } from './selectors.js';
-import { tm, allKeys } from './i18n.js';
+import { tm, allKeys, rawString, setLocale, t as translate } from './i18n.js';
 import { extractIntake, INTAKE_FIELDS } from './extract.js';
 import { publicHospitals, rankHospitals, citizenCases, citizenCaseView, PUBLIC_HOSPITAL_FIELDS } from './selectors.js';
 import { pointFromGeo, simulatedTrip } from './geo.js';
 import { isMsg } from './messages.js';
 import { createStore } from './store.js';
+import { STEPS, PATHS, nextAction, actionIndex, stepDone, crewCase, demoTransfer, DEMO_BED, DEMO_ICU_BED, CITIZEN_DEMO_USER } from './demo-script.js';
 import { vitalProblem, normalizeReading, VITAL_TYPE_KEYS } from './vitals.js';
 import { crewCases, crewCaseView, crewScope, auditLog } from './selectors.js';
 import { notificationsFor } from './readiness.js';
@@ -1398,6 +1399,154 @@ test('Task 5', 'admin can read the audit log but cannot perform any clinical act
   assert(byUser.length && byUser.every((e) => e.actorId === 'u-er-coord'), 'filter by user');
   eq(auditLog(S(), { recordId: 'case-laurel', action: 'acknowledgeArrival' }).map((e) => text(e.summary)), ['SL-2042 acknowledged; coordinator Amira Haddad'].map(() => text(byUser[0].summary)), 'filter by record and action');
   eq(auditLog(S(), { from: addMinutes(T0, 1) }).length, 0, 'filter by date');
+});
+
+// ============================================================================
+// Task 6: Arabic
+// ============================================================================
+// Values that may legitimately be identical in both languages: the brand name, and the sample that is already Arabic.
+const AR_SAME_ALLOWED = ['app.name', 'sample.arabic.text'];
+const latinOutsidePlaceholders = (v) => /[A-Za-z]/.test(v.replace(/\{\w+\}/g, ''));
+
+test('Task 6', 'every English key has an Arabic value: non-empty, translated, same placeholders', () => {
+  const problems = [];
+  for (const key of allKeys()) {
+    const en = rawString('en', key);
+    const ar = rawString('ar', key);
+    if (ar === undefined) { problems.push(`${key}: missing`); continue; }
+    if (en.trim() !== '' && ar.trim() === '') problems.push(`${key}: empty`);
+    if (ar === en && latinOutsidePlaceholders(en) && !AR_SAME_ALLOWED.includes(key)) problems.push(`${key}: identical to English`);
+    const ph = (v) => (v.match(/\{\w+\}/g) ?? []).sort().join();
+    if (ph(en) !== ph(ar)) problems.push(`${key}: placeholders ${ph(en)} ≠ ${ph(ar)}`);
+    if (ar !== en && !/[\u0600-\u06FF]/.test(ar) && latinOutsidePlaceholders(en)) problems.push(`${key}: no Arabic text`);
+  }
+  eq(problems, [], 'Arabic table complete');
+});
+
+test('Task 6', 'engine messages render in Arabic with Gregorian dates and Western digits', () => {
+  const { S, act } = setup();
+  rejected(act('submitArrival', crewRun({ vitals: [{ type: 'SpO2', value: 140, takenAt: T0 }] }), 'u-para-1'), 'invalid');
+  const res = act('submitArrival', crewRun({ vitals: [{ type: 'SpO2', value: 140, takenAt: T0 }] }), 'u-para-1');
+  try {
+    setLocale('ar');
+    const text = tm(res.error);
+    assert(/[\u0600-\u06FF]/.test(text) && text.includes('140') && text.includes('SpO₂'), `Arabic error keeps the value and abbreviation: ${text}`);
+    const time = tm({ code: 'incoming.etaValue', params: { time: { iso: T0 }, rel: 'x' } });
+    assert(/\d\d:\d\d/.test(time) && !/[٠-٩]/.test(time), `Western digits in Arabic times: ${time}`);
+    const audit = values(S(), 'auditEvents').at(-1);
+    assert(/[\u0600-\u06FF]/.test(tm(audit.summary)), 'stored audit summaries render in Arabic');
+  } finally { setLocale('en'); }
+});
+
+test('Task 6', 'the Arabic samples flow through extraction', () => {
+  try {
+    setLocale('ar');
+    const fever = extractIntake(translate('sample.fever.text'), 'ar').fields;
+    eq([fever.age, fever.awake, fever.breathing, fever.transportMode], ['72', 'yes', 'yes', 'private_car'], 'fever sample');
+    assert(fever.conditions.includes('السكري') && fever.allergies.includes('البنسلين') && fever.location.includes('حي النور'), 'fever conditions, allergy and district');
+    const fall = extractIntake(translate('sample.fall.text'), 'ar').fields;
+    eq([fall.age, fall.contact.replace(/\D/g, ''), fall.transportMode], ['45', '0501234567', 'private_car'], 'fall sample');
+    assert(fall.onset.startsWith('منذ') && fall.concern.includes('سقطت'), 'fall onset and concern');
+    const crash = extractIntake(translate('sample.crash.text'), 'ar').fields;
+    eq([crash.patientCount, crash.awake, crash.breathing], ['2', 'yes', 'yes'], 'crash sample');
+    const arabic = extractIntake(translate('sample.arabic.text'), 'ar').fields;
+    eq([arabic.age, arabic.awake, arabic.breathing], ['68', 'yes', 'yes'], 'Arabic-Indic digits sample');
+  } finally { setLocale('en'); }
+});
+
+test('Task 6', 'changing destination recalculates a simulated ETA from the origin; the crew can override it', () => {
+  const { S, act, now } = setup();
+  const origin = { x: 6.5, y: 4.5 };
+  const id = ok(act('submitArrival', crewRun({ clientRef: 'redirect', origin, etaAt: addMinutes(T0, 5) }), 'u-para-1')).result.caseId;
+  const n = () => S().arrivalNotices[S().cases[id].noticeId];
+  eq(n().etaSource, 'reported', 'ETA sent by the crew');
+  rejected(act('submitArrival', crewRun({ clientRef: 'bad-origin', origin: { x: 'a' } }), 'u-para-1'), 'invalid');
+  ok(act('changeDestination', { caseId: id, toHospitalId: 'h-rimal', reason: 'Specialist team at Rimal' }, 'u-para-1'));
+  const trip = simulatedTrip(origin, S().hospitals['h-rimal'].position, 'ambulance');
+  eq([n().etaAt, n().etaSource], [addMinutes(now(), trip.minutes), 'simulated'], 'recalculated for the new hospital from the origin');
+  assert(n().timeline.some((e) => e.detail.code === 'tl.etaRecalculated'), 'timeline says the ETA was recalculated');
+  ok(act('changeDestination', { caseId: id, toHospitalId: H, reason: 'Back to Wadi Noor', etaAt: addMinutes(now(), 12) }, 'u-para-1'));
+  eq([n().etaAt, n().etaSource], [addMinutes(now(), 12), 'reported'], 'crew override wins');
+  rejected(act('changeDestination', { caseId: id, toHospitalId: 'h-rimal', reason: 'x', etaAt: 'soon' }, 'u-para-1'), 'invalid');
+  // Seeded cases have no recorded origin: the old destination stands in as the simulated start point.
+  ok(act('changeDestination', { caseId: 'case-laurel', toHospitalId: 'h-rimal', reason: 'Bypass' }, 'u-para-2'));
+  const n2 = S().arrivalNotices[S().cases['case-laurel'].noticeId];
+  eq(n2.etaAt, addMinutes(now(), simulatedTrip(S().hospitals[H].position, S().hospitals['h-rimal'].position, 'ambulance').minutes), 'fallback origin');
+});
+
+// Every visible UI string comes from i18n: no hard-coded text, labels or placeholders in src/ui (Task 6 replaces the
+// ad-hoc checker, which mistook the comment form's preflight placeholder for visible text).
+const UI_FILES = ['about.js', 'admin.js', 'app.js', 'beds.js', 'citizen.js', 'citymap.js', 'components.js', 'core.js', 'crew.js', 'demo.js', 'dom.js',
+  'drawer.js', 'er.js', 'forms.js', 'handover.js', 'icons.js', 'icu.js', 'notices.js', 'placement.js', 'queues.js', 'shell.js', 'tasks.js', 'taskui.js', 'transfer.js', 'voice.js'];
+async function uiSources() {
+  if (globalThis.__SILA_SOURCES) return Object.fromEntries(Object.entries(globalThis.__SILA_SOURCES).filter(([f]) => f.startsWith('ui/')).map(([f, v]) => [f.slice(3), v]));
+  if (typeof process !== 'undefined' && process.versions?.node) {
+    const fs = await import('node:fs');
+    const onDisk = fs.readdirSync(new URL('./ui/', import.meta.url)).filter((f) => f.endsWith('.js')).sort();
+    eq(onDisk, [...UI_FILES].sort(), 'UI_FILES lists every UI module');
+    return Object.fromEntries(onDisk.map((f) => [f, fs.readFileSync(new URL(`./ui/${f}`, import.meta.url), 'utf8')]));
+  }
+  const out = {};
+  for (const f of UI_FILES) out[f] = await (await fetch(new URL(`./ui/${f}`, import.meta.url))).text();
+  return out;
+}
+
+test('Task 6', 'no hard-coded visible text in the UI; every t() key exists', async () => {
+  const keys = new Set(allKeys());
+  const problems = [];
+  const ID_EXAMPLE = /^[A-Z]{1,3}-\d+$/; // an example reference such as the admin filter's "SL-2041"
+  for (const [file, raw] of Object.entries(await uiSources())) {
+    const src = stripComments(raw);
+    for (const m of src.matchAll(/\bt\(\s*'([^'$`]+)'/g)) if (!keys.has(m[1])) problems.push(`${file}: missing key ${m[1]}`);
+    for (const m of src.matchAll(/\b(text|'aria-label'|placeholder|title|label):\s*'([^']*)'/g)) {
+      if (/[A-Za-z؀-ۿ]/.test(m[2]) && !ID_EXAMPLE.test(m[2]) && !keys.has(m[2])) problems.push(`${file}: literal ${m[1]} '${m[2]}'`);
+    }
+    for (const m of src.matchAll(/\bh\('[a-z0-9]+',\s*\{[^{}]*\},\s*'([^']*)'/g)) if (/[A-Za-z؀-ۿ]/.test(m[1])) problems.push(`${file}: literal child '${m[1]}'`);
+  }
+  eq(problems, [], 'UI text comes from i18n');
+});
+
+// Guided demo: both paths run from the seed using only dispatch(), with the same permission checks as the buttons.
+function runDemoPath(path) {
+  const { S, act, now, advance } = setup();
+  const ctx = { deviceRef: 'device-demo-test', now: now() };
+  const log = [];
+  for (const id of PATHS[path]) {
+    const step = STEPS[id];
+    const pre = step.pre?.(S());
+    if (pre) throw new Fail(`${path}/${id}: precondition failed (${pre})`);
+    const attempted = new Set();
+    for (let a = nextAction(id, S(), attempted), guard = 0; a; a = nextAction(id, S(), attempted), guard++) {
+      if (guard > 12) throw new Fail(`${path}/${id}: ${a.action} never completes`);
+      attempted.add(actionIndex(id, a));
+      ctx.now = now();
+      const user = a.as === 'citizen' ? CITIZEN_DEMO_USER : a.as;
+      const res = act(a.action, a.payload(S(), ctx), user);
+      if (a.expectReject) { rejected(res, 'forbidden'); log.push(`${id}:${a.action}✗`); continue; }
+      if (!res.ok) throw new Fail(`${path}/${id}: ${a.action} as ${user} rejected (${res.code}): ${text(res.error)}`);
+      log.push(`${id}:${a.action}`);
+      advance(1);
+    }
+    if (step.actions && !step.actions.some((a) => a.expectReject)) assert(stepDone(id, S()), `${path}/${id}: done after its actions`);
+  }
+  return { S, log };
+}
+
+test('Task 6', 'guided demo "3-minute pitch" completes from the seed through dispatch()', () => {
+  const { S, log } = runDemoPath('pitch');
+  const c = crewCase(S());
+  eq([S().patients[c.patientId].location.bedId, demoTransfer(S()).status], [DEMO_ICU_BED, 'completed'], 'patient placed in the step-down ICU bed');
+  eq([S().beds[DEMO_BED].occupancy.status, S().beds[DEMO_BED].cleaning.status], ['vacant', 'required'], 'vacated ER bed is in the cleaning queue');
+  assert(PATHS.pitch.length >= 11 && PATHS.pitch.length <= 14, `about twelve steps (${PATHS.pitch.length})`);
+  assert(log.length >= 25, `the pitch exercises the whole story (${log.length} actions)`);
+});
+
+test('Task 6', 'guided demo "full tour" covers SPEC §14 plus step-down and a wrong-role rejection', () => {
+  const { S, log } = runDemoPath('tour');
+  assert(log.includes('wrongRole:resolveFault✗'), 'nurse is refused when resolving the equipment ticket');
+  assert(log.includes('stepDownFlag:flagStepDown'), 'step-down flag shown on its own');
+  eq(demoTransfer(S()).status, 'completed', 'tour ends with the patient in ICU');
+  assert(PATHS.tour.length >= 19, `17 SPEC steps + 2 (${PATHS.tour.length})`);
 });
 
 // Must stay last: proves no action is a stub.

@@ -4,7 +4,7 @@
 import { values } from '../data.js';
 import { deriveTransferStatus, activeReservationForCase } from '../readiness.js';
 import { erDashboard, erBeds, ER_TILE_KEYS, selectRecentlyCanceled } from '../selectors.js';
-import { t, tm, formatTime, formatRelative } from '../i18n.js';
+import { t, tm, formatTime, formatRelative, joinText, formatDateTime } from '../i18n.js';
 import { h, append } from './dom.js';
 import { icon, ambulanceIllustration } from './icons.js';
 import { ctx, state, now, currentUser, canSeePatient, requestRender, viewedRevision } from './core.js';
@@ -113,7 +113,7 @@ function incomingCard(s, c, n) {
         pill('neutral', t(`notice.${notice?.status ?? 'submitted'}`), 'info'),
         updated ? pill('updated', t('incoming.handoverUpdated'), 'spark') : null,
         openClar ? pill('pending', t('incoming.clarificationOpen'), 'comment') : null,
-        h('span', { class: 'chip', title: notice?.updatedAt }, icon('clock', { size: 14 }), t('incoming.updated', { rel: formatRelative(notice?.updatedAt ?? c.updatedAt, n) })))),
+        h('span', { class: 'chip', title: formatDateTime(notice?.updatedAt ?? c.updatedAt) }, icon('clock', { size: 14 }), t('incoming.updated', { rel: formatRelative(notice?.updatedAt ?? c.updatedAt, n) })))),
     h('p', { class: 'concern' }, h('span', { class: 'label', text: `${t('incoming.reported')} · ${t('incoming.unverified')}` }),
       showP ? (c.reportedConcern ?? t('common.unknown')) : t('drawer.patientHidden')),
     h('dl', { class: 'facts' },
@@ -166,7 +166,7 @@ function inErCard(s, c, n) {
     h('div', { class: 'action-row' },
       uiButton(t('action.openCase'), openDrawer('case', c.id), { iconName: 'comment', small: true, 'data-focus-key': `open:case:${c.id}` }),
       c.triage ? null : actionButton({ action: 'recordTriage', payload: { caseId: c.id }, label: t('action.recordTriage'), small: true, kind: 'primary', open: (seen) => openTriage(c, seen) }),
-      res ? actionButton({ action: 'confirmPlacement', payload: { bedId: res.bedId, caseId: c.id }, label: `${t('action.confirmPlacement')} · ${resBed.label}`, small: true, kind: 'primary' })
+      res ? actionButton({ action: 'confirmPlacement', payload: { bedId: res.bedId, caseId: c.id }, label: joinText([t('action.confirmPlacement'), resBed.label]), small: true, kind: 'primary' })
         : actionButton({ action: 'reserveBed', payload: { bedId: anyBed?.id, caseId: c.id }, label: t('action.reserveBed'), small: true, open: () => openReserveForCase(c) }),
       res ? actionButton({ action: 'extendReservation', payload: { reservationId: res.id }, label: t('action.extendReservation'), small: true, open: (seen) => openExtend(res, seen) }) : null,
       res ? actionButton({ action: 'releaseReservation', payload: { reservationId: res.id }, label: t('action.releaseReservation'), small: true, kind: 'danger', open: (seen) => openRelease(res, seen) }) : null));
@@ -200,7 +200,7 @@ function overduePanel(s, n, ids) {
   const items = ids.map((id) => s.tasks[id] ?? s.maintenanceTickets[id]);
   return panel(t('er.overdue'), 'alert', items.length, items.length ? h('ul', { class: 'rows' }, items.map((x) => {
     const bedId = x.entity === 'task' ? x.linked.bedId : x.bedId;
-    const label = x.entity === 'task' ? tm(x.title) : `${x.ref} · ${tm(x.category)}`;
+    const label = x.entity === 'task' ? tm(x.title) : joinText([x.ref, tm(x.category)]);
     const owner = x.entity === 'task' ? (x.ownerUserId ? userName(x.ownerUserId) : roleLabel(x.requiredRole)) : (x.assignedTo ? userName(x.assignedTo) : roleLabel(x.kind === 'technical' ? 'maintenance_tech' : 'biomed_tech'));
     return h('li', { class: 'row overdue' }, icon('alert'),
       h('div', { class: 'grow' }, h('strong', { text: label }),
