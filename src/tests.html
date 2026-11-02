@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SILA engine tests</title>
+<style>
+  body { font: 14px/1.45 system-ui, sans-serif; margin: 16px; color: #0b2340; background: #fff; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: start; vertical-align: top; padding-block: 6px; padding-inline: 8px; border-block-end: 1px solid #d9e2ec; }
+  td.result { font-weight: 600; white-space: nowrap; }
+  tr.pass td.result { color: #116b3f; }
+  tr.fail td.result { color: #b42318; }
+  td.reason { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; }
+  #summary { font-size: 16px; font-weight: 600; margin: 8px 0 12px; }
+</style>
+</head>
+<body>
+<h1>SILA — engine tests</h1>
+<p>Hackathon demo — synthetic data. Runs the same suite as <code>node src/run-tests-node.js</code>.</p>
+<p id="summary" role="status">Running…</p>
+<table>
+  <thead><tr><th>#</th><th>Group</th><th>Test</th><th>Result</th><th>Reason for failure</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script type="module">
+import { runAll } from './tests.js';
+
+const results = await runAll();
+const rows = document.getElementById('rows');
+results.forEach((r, i) => {
+  const tr = document.createElement('tr');
+  tr.className = r.pass ? 'pass' : 'fail';
+  for (const [text, cls] of [[String(i + 1)], [r.group], [r.name], [r.pass ? '✓ PASS' : '✗ FAIL', 'result'], [r.error ?? '', 'reason']]) {
+    const td = document.createElement('td');
+    td.textContent = text;
+    if (cls) td.className = cls;
+    tr.appendChild(td);
+  }
+  rows.appendChild(tr);
+});
+const failed = results.filter((r) => !r.pass).length;
+document.getElementById('summary').textContent = `${results.length - failed} / ${results.length} passed${failed ? ` — ${failed} failed` : ''}`;
+window.SILA_TEST_RESULTS = results;
+</script>
+</body>
+</html>

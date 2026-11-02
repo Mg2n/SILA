@@ -1,0 +1,9 @@
+{
+  "name": "sila-connected-patient-flow",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node src/run-tests-node.js"
+  }
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SILA</title>
+<link rel="stylesheet" href="./ui/styles.css">
+</head>
+<body>
+<a id="skip-link" class="skip-link" href="#main"></a>
+<header id="topbar" class="topbar"></header>
+<main id="main" tabindex="-1"></main>
+<footer id="footer" class="app-foot"></footer>
+<div id="drawer-root"></div>
+<div id="notif-root"></div>
+<div id="dialog-root"></div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<script type="module">
+import { boot } from './ui/app.js';
+boot();
+</script>
+</body>
+</html>
