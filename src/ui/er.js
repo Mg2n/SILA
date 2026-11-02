@@ -7,7 +7,8 @@ import { erDashboard, erBeds, ER_TILE_KEYS, selectRecentlyCanceled } from '../se
 import { t, tm, formatTime, formatRelative } from '../i18n.js';
 import { h, append } from './dom.js';
 import { icon, ambulanceIllustration } from './icons.js';
-import { ctx, state, now, currentUser, canSeePatient, requestRender } from './core.js';
+import { ctx, state, now, currentUser, canSeePatient, requestRender, viewedRevision } from './core.js';
+import { acuityLabel } from './handover.js';
 import { pill, emptyState, panel, actionButton, uiButton, userName, roleLabel, highlightClass } from './components.js';
 import { bedCard, tileGrid, inTransitPanel, openDrawer } from './beds.js';
 import { openClarify, openAssignCoordinator, openCancelCase, openTriage, openExtend, openRelease } from './forms.js';
@@ -79,7 +80,7 @@ function canceledCard(s, c, n) {
 }
 
 const reqChips = (c, notice) => {
-  const chips = ['isolation', 'ventilator'].filter((k) => c.requirements?.[k]).map((k) => h('span', { class: 'chip', text: t(`req.${k}`) }));
+  const chips = ['isolation', 'ventilator', 'monitor'].filter((k) => c.requirements?.[k]).map((k) => h('span', { class: 'chip', text: t(`req.${k}`) }));
   const crewText = notice?.handover?.receivingRequirements;
   if (!chips.length && !crewText) return t('incoming.noRequirements');
   return h('span', {}, ...chips, crewText ? h('span', { class: 'small', text: ` ${crewText}` }) : null);
@@ -101,6 +102,8 @@ function incomingCard(s, c, n) {
   const showP = canSeePatient(c.destinationHospitalId);
   const openClar = values(s, 'comments').some((cm) => cm.caseId === c.id && cm.kind === 'clarification' && cm.status === 'open');
   const anyBed = erBeds(s, c.destinationHospitalId)[0];
+  // Fields changed since this coordinator last opened the handover (revision seen is kept per user in this browser).
+  const updated = !!notice?.handover && notice.revision > viewedRevision(c.id);
   return h('article', { class: ['card', highlightClass('case', c.id)], 'aria-label': c.ref },
     h('div', { class: 'card-head' },
       amb ? ambulanceIllustration() : h('span', { class: 'chip' }, icon('person', { size: 20 })),
@@ -108,6 +111,7 @@ function incomingCard(s, c, n) {
         h('span', { class: 'small muted', text: amb ? t('source.ambulanceId', { id: amb.ambulanceId }) : t(`source.${c.source}`) })),
       h('div', { class: 'end' },
         pill('neutral', t(`notice.${notice?.status ?? 'submitted'}`), 'info'),
+        updated ? pill('updated', t('incoming.handoverUpdated'), 'spark') : null,
         openClar ? pill('pending', t('incoming.clarificationOpen'), 'comment') : null,
         h('span', { class: 'chip', title: notice?.updatedAt }, icon('clock', { size: 14 }), t('incoming.updated', { rel: formatRelative(notice?.updatedAt ?? c.updatedAt, n) })))),
     h('p', { class: 'concern' }, h('span', { class: 'label', text: `${t('incoming.reported')} · ${t('incoming.unverified')}` }),
@@ -117,7 +121,7 @@ function incomingCard(s, c, n) {
         notice?.etaAt ? t('incoming.etaValue', { time: formatTime(notice.etaAt), rel: formatRelative(notice.etaAt, n) }) : t('incoming.etaUnknown'),
         h('span', { class: 'small muted', text: ` (${t('incoming.etaSimulated')})` })),
       h('dt', { text: t('incoming.acuity') }), h('dd', {}, acuityText(c),
-        c.crewAcuity ? h('span', { class: 'small muted', text: ` · ${t('incoming.crewAcuity', { level: c.crewAcuity.level })}` }) : null),
+        c.crewAcuity ? h('span', { class: 'small muted', text: ` · ${t('incoming.crewAcuity', { level: acuityLabel(c.crewAcuity.level) })}` }) : null),
       h('dt', { text: t('incoming.ack') }), h('dd', {}, notice?.acknowledged
         ? t('incoming.acked', { time: formatTime(notice.acknowledged.at), name: userName(notice.acknowledged.by) })
         : pill('pending', t('incoming.notAcked'), 'clock')),

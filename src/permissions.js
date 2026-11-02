@@ -134,6 +134,13 @@ export const RULES = {
     return mine ? null : msg('perm.notificationRecipient');
   },
 
+  updateCrewStatus: all(roleIs(['paramedic'], msg('perm.crewOnly')), (u, r) => (ownsCase(u, r) ? null : msg('perm.crewOnly'))),
+
+  // Read capability: an ambulance crew sees only the cases assigned to its unit.
+  viewCrewCase: all(roleIs(['paramedic'], msg('perm.crewOnly')), (u, r) => (ownsCase(u, r) ? null : msg('perm.crewOnly'))),
+  // Read capability: the audit log is for administrators (read-only in this demo).
+  viewAuditLog: roleIs(['admin'], msg('perm.adminOnly')),
+
   // Read capability: a citizen session sees only the notices sent from its own device.
   viewCitizenCase: all(roleIs(['citizen', 'paramedic'], msg('perm.ownCaseOnly')), (u, r) => (ownsCase(u, r) ? null : msg('perm.ownCaseOnly'))),
 

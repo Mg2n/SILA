@@ -15,6 +15,9 @@ import { publicHospitals, rankHospitals, citizenCases, citizenCaseView, PUBLIC_H
 import { pointFromGeo, simulatedTrip } from './geo.js';
 import { isMsg } from './messages.js';
 import { createStore } from './store.js';
+import { vitalProblem, normalizeReading, VITAL_TYPE_KEYS } from './vitals.js';
+import { crewCases, crewCaseView, crewScope, auditLog } from './selectors.js';
+import { notificationsFor } from './readiness.js';
 
 const T0 = '2026-11-02T10:00:00.000Z';
 const tests = [];
@@ -134,16 +137,16 @@ test('SPEC §16', "citizen submission creates a case on the correct hospital's E
 test('SPEC §16', 'ambulance updates modify the existing case without duplication', () => {
   const { S, act } = setup();
   const nCases = values(S(), 'cases').length;
-  const first = ok(act('submitArrival', { destinationHospitalId: H, concern: 'Shortness of breath', crewAcuity: 'High', clientRef: 'amb-12-run-7',
-    vitals: [{ name: 'SpO₂', value: '89', unit: '%', at: T0 }] }, 'u-para-1'));
+  const first = ok(act('submitArrival', { destinationHospitalId: H, concern: 'Shortness of breath', crewAcuity: 'high', clientRef: 'amb-12-run-7',
+    vitals: [{ type: 'SpO2', value: '89', takenAt: T0 }] }, 'u-para-1'));
   eq(values(S(), 'cases').length, nCases + 1, 'one new case');
   // Resend by clientRef (device retry) and by caseId (explicit update): still one case.
-  ok(act('submitArrival', { clientRef: 'amb-12-run-7', concern: 'Shortness of breath, now drowsy', vitals: [{ name: 'SpO₂', value: '87', unit: '%', at: T0 }] }, 'u-para-1'));
+  ok(act('submitArrival', { clientRef: 'amb-12-run-7', concern: 'Shortness of breath, now drowsy', vitals: [{ type: 'SpO2', value: '87', takenAt: T0 }] }, 'u-para-1'));
   ok(act('submitArrival', { caseId: first.result.caseId, etaAt: addMinutes(T0, 9) }, 'u-para-1'));
   eq(values(S(), 'cases').length, nCases + 1, 'no duplicate case');
   eq(values(S(), 'arrivalNotices').filter((n) => n.caseId === first.result.caseId).length, 1, 'one notice');
   const n = S().arrivalNotices[S().cases[first.result.caseId].noticeId];
-  eq([n.revision, n.reported.concern, n.handover.vitals[0].value, n.etaAt], [3, 'Shortness of breath, now drowsy', '87', addMinutes(T0, 9)], 'notice updated in place');
+  eq([n.revision, n.reported.concern, n.handover.vitals.map((v) => v.value), n.etaAt], [3, 'Shortness of breath, now drowsy', [89, 87], addMinutes(T0, 9)], 'notice updated in place; readings kept over time');
   // Seeded case resent via its device clientRef.
   ok(act('submitArrival', { clientRef: 'seed-laurel', concern: 'Leg injury; pain controlled' }, 'u-para-2'));
   eq(values(S(), 'cases').length, nCases + 1, 'seeded case updated in place');
@@ -891,7 +894,7 @@ test('Task 2', 'bed board status, comments and My Tasks selectors', () => {
 // ============================================================================
 // Task 3: engine messages are codes
 // ============================================================================
-const ENGINE_FILES = ['data.js', 'messages.js', 'permissions.js', 'readiness.js', 'actions.js', 'selectors.js', 'store.js'];
+const ENGINE_FILES = ['data.js', 'messages.js', 'permissions.js', 'readiness.js', 'actions.js', 'selectors.js', 'store.js', 'vitals.js'];
 async function engineSources() {
   if (globalThis.__SILA_SOURCES) return globalThis.__SILA_SOURCES; // bundled build embeds the sources
   if (typeof process !== 'undefined' && process.versions?.node) {
@@ -1201,6 +1204,200 @@ test('Task 4', 'a citizen submission never creates a reservation, placement or I
   eq(count(), before, 'no reservations, placements, transfers or tasks created');
   eq(citizenCases(S(), 'device-cccc').length, 2, 'resend updated the first notice instead of duplicating');
   rejected(act('submitArrival', { destinationHospitalId: H, concern: 'x', deviceRef: 'device-cccc', requestIcu: true }, 'u-citizen-public'), 'invalid', 'cannot request ICU');
+});
+
+// ============================================================================
+// Task 5: ambulance crew
+// ============================================================================
+const crewRun = (extra = {}) => ({ destinationHospitalId: H, concern: 'Chest pain at rest', clientRef: `run-${Math.random().toString(36).slice(2, 8)}`, ...extra });
+
+test('Task 5', "a crew sees only its own unit's cases and cannot read or update another unit's case", () => {
+  const { S, act } = setup();
+  const a12 = S().users['u-para-1'];
+  const a07 = S().users['u-para-2'];
+  eq([a12.ambulanceId, S().users['u-para-4'].ambulanceId, a07.ambulanceId, S().users['u-para-3'].ambulanceId], ['WN-A12', 'WN-A12', 'WN-A07', 'WN-A07'], 'two seeded units with named crews');
+  eq(crewCases(S(), a12).map((c) => c.id), ['case-ivy'], 'WN-A12 sees only its case');
+  eq(crewCases(S(), a07).map((c) => c.id).sort(), ['case-laurel', 'case-moss'], 'WN-A07 sees only its cases');
+  assert(crewCaseView(S(), 'case-ivy', S().users['u-para-4']), 'a second crew member of the same unit sees the case');
+  eq(crewCaseView(S(), 'case-ivy', a07), null, "another unit's case is not readable");
+  eq(crewCaseView(S(), 'case-ivy', S().users['u-er-coord']), null, 'the crew view is for crews only');
+  eq(text(can(a07, 'viewCrewCase', crewScope(S(), S().cases['case-ivy'])).reason), 'Only the ambulance crew assigned to this case can do this.', 'viewCrewCase denied across units');
+  assert(can(a12, 'viewCrewCase', crewScope(S(), S().cases['case-ivy'])).allowed, 'viewCrewCase allowed for the unit');
+  rejected(act('updateETA', { caseId: 'case-ivy', etaAt: addMinutes(T0, 5) }, 'u-para-2'), 'forbidden');
+  rejected(act('submitArrival', { caseId: 'case-ivy', concern: 'x' }, 'u-para-2'), 'forbidden');
+  rejected(act('updateCrewStatus', { caseId: 'case-ivy', status: 'arrived' }, 'u-para-3'), 'forbidden', 'Only the ambulance crew assigned');
+  rejected(act('cancelCase', { caseId: 'case-ivy', reason: 'x' }, 'u-para-2'), 'forbidden');
+  rejected(act('changeDestination', { caseId: 'case-ivy', toHospitalId: 'h-rimal', reason: 'x' }, 'u-para-2'), 'forbidden');
+  // The other crew member of WN-A12 can act on it (the case belongs to the unit).
+  ok(act('updateETA', { caseId: 'case-ivy', etaAt: addMinutes(T0, 6) }, 'u-para-4'));
+  // Acknowledgments and clarifications reach only the unit whose case it is.
+  ok(act('acknowledgeArrival', { caseId: 'case-laurel' }, 'u-er-coord'));
+  ok(act('requestClarification', { caseId: 'case-laurel', question: 'Any blood thinners?' }, 'u-er-coord'));
+  const about = (u) => notificationsFor(S(), S().users[u]).filter((n) => n.ref?.id === 'case-laurel' || S().comments[n.ref?.id]?.caseId === 'case-laurel').map((n) => n.type).sort();
+  eq(about('u-para-2'), ['acknowledged', 'clarification'], 'WN-A07 crew is told');
+  eq(about('u-para-3'), ['acknowledged', 'clarification'], 'both WN-A07 crew members are told');
+  eq([about('u-para-1'), about('u-para-4')], [[], []], 'WN-A12 hears nothing about WN-A07 cases');
+  const q = values(S(), 'comments').find((c) => c.caseId === 'case-laurel' && c.status === 'open');
+  rejected(act('respondClarification', { commentId: q.id, answer: 'No' }, 'u-para-1'), 'forbidden');
+  ok(act('respondClarification', { commentId: q.id, answer: 'No anticoagulants' }, 'u-para-3'));
+});
+
+test('Task 5', 'vitals: impossible values are rejected; readings are stored structured, appended, never interpreted', () => {
+  const { S, act, advance } = setup();
+  const bad = [
+    [{ type: 'SpO2', value: 140, takenAt: T0 }, 'outside the physically possible range (0–100 %)'],
+    [{ type: 'HR', value: 'fast', takenAt: T0 }, 'Enter Heart rate as a number'],
+    [{ type: 'GCS', value: 2, takenAt: T0 }, 'GCS 2 is outside'],
+    [{ type: 'RR', value: 18.5, takenAt: T0 }, 'whole number'],
+    [{ type: 'BP', value: { systolic: 80, diastolic: 120 }, takenAt: T0 }, 'not physically possible'],
+    [{ type: 'BP', value: '120/80', takenAt: T0 }, 'two whole numbers'],
+    [{ type: 'Temp', value: 51, takenAt: T0 }, 'Temperature 51'],
+    [{ type: 'HR', value: 90, takenAt: addMinutes(T0, 30) }, 'in the future'],
+    [{ type: 'HR', value: 90 }, 'Enter the time'],
+    [{ type: 'Pulse', value: 90, takenAt: T0 }, 'Choose a vital-sign type'],
+  ];
+  for (const [reading, text] of bad) {
+    rejected(act('submitArrival', crewRun({ vitals: [reading] }), 'u-para-1'), 'invalid', text);
+  }
+  const caseCount = values(S(), 'cases').length;
+  const first = ok(act('submitArrival', crewRun({ clientRef: 'v-1', vitals: [
+    { type: 'HR', value: '112', takenAt: addMinutes(T0, -10), unit: 'beats', abnormal: true, score: 3 },
+    { type: 'HR', value: 104, takenAt: T0 },
+    { type: 'BP', value: { systolic: '150', diastolic: '92' }, takenAt: T0 },
+    { type: 'Temp', value: '38.27', takenAt: T0 },
+    { type: 'glucose', value: '5,4', takenAt: T0 },
+  ] }), 'u-para-1'));
+  const id = first.result.caseId;
+  const n = () => S().arrivalNotices[S().cases[id].noticeId];
+  const v = n().handover.vitals;
+  eq(v.map((r) => Object.keys(r).sort().join(',')), Array(5).fill('enteredBy,id,takenAt,type,unit,value'), 'only the structured fields are stored');
+  eq(v.map((r) => [r.type, r.value, r.unit]), [['HR', 112, 'bpm'], ['HR', 104, 'bpm'], ['BP', { systolic: 150, diastolic: 92 }, 'mmHg'], ['Temp', 38.3, '°C'], ['glucose', 5.4, 'mmol/L']], 'values normalized; unit comes from the type');
+  eq([...new Set(v.map((r) => r.enteredBy))], ['u-para-1'], 'enteredBy is the signed-in crew member');
+  const spoof = ok(act('submitArrival', crewRun({ vitals: [{ type: 'HR', value: 80, takenAt: T0, id: 'vs-ivy-1', enteredBy: 'u-er-doc' }] }), 'u-para-1'));
+  const sv = S().arrivalNotices[S().cases[spoof.result.caseId].noticeId].handover.vitals[0];
+  assert(sv.id !== 'vs-ivy-1' && sv.enteredBy === 'u-para-1', 'the engine assigns the reading id and enteredBy, not the client');
+  // Readings over time are appended; a resend carrying already-sent readings does not duplicate them.
+  advance(4);
+  ok(act('submitArrival', { caseId: id, vitals: [...v, { type: 'SpO2', value: 91, takenAt: addMinutes(T0, 4) }] }, 'u-para-1'));
+  eq(n().handover.vitals.map((r) => r.type), ['HR', 'HR', 'BP', 'Temp', 'glucose', 'SpO2'], 'new reading appended, old ones kept');
+  rejected(act('submitArrival', { caseId: id, vitals: [{ type: 'SpO2', value: 140, takenAt: addMinutes(T0, 4) }] }, 'u-para-1'), 'invalid', 'SpO₂ 140');
+  eq(values(S(), 'cases').length, caseCount + 2, 'one case per new handover; resends add none');
+  // Nothing anywhere interprets a reading.
+  const FORBIDDEN = /abnormal|flag|score|interpret|severity|alert|warning|news2|risk|normalRange|isHigh|isLow/i;
+  const keys = [];
+  const walk = (o) => { if (o && typeof o === 'object') for (const [k, val] of Object.entries(o)) { keys.push(k); walk(val); } };
+  walk(n()); walk(S().cases[id]);
+  eq(keys.filter((k) => FORBIDDEN.test(k)), [], 'no interpretation fields on the notice or case');
+  for (const type of VITAL_TYPE_KEYS) {
+    const sample = type === 'BP' ? { systolic: 300, diastolic: 200 } : { HR: 300, RR: 90, SpO2: 50, Temp: 45, GCS: 3, glucose: 70 }[type];
+    eq(vitalProblem({ type, value: sample, takenAt: T0 }, T0), null, `${type}: an extreme but possible value is accepted without comment`);
+    eq(Object.keys(normalizeReading({ type, value: sample, takenAt: T0 }, 'u-para-1', 'vs-x')).sort(), ['enteredBy', 'id', 'takenAt', 'type', 'unit', 'value'], `${type}: no extra keys`);
+  }
+});
+
+test('Task 5', 'crew-reported acuity is stored with source crew and never copied into the staff triage field', () => {
+  const { S, act } = setup();
+  rejected(act('submitArrival', crewRun({ crewAcuity: 'urgent' }), 'u-para-1'), 'invalid', 'crew-reported acuity');
+  const r = ok(act('submitArrival', crewRun({ clientRef: 'acu-1', crewAcuity: 'critical' }), 'u-para-1'));
+  const id = r.result.caseId;
+  const c = () => S().cases[id];
+  const n = () => S().arrivalNotices[c().noticeId];
+  eq([c().crewAcuity, n().handover.crewAcuity, c().triage], [{ level: 'critical', source: 'crew' }, { level: 'critical', source: 'crew' }, null], 'stored as crew-reported; triage untouched');
+  ok(act('submitArrival', { caseId: id, crewAcuity: 'moderate' }, 'u-para-1'));
+  eq([c().crewAcuity.level, c().triage], ['moderate', null], 'updating crew acuity still leaves triage empty');
+  ok(act('updateCrewStatus', { caseId: id, status: 'en_route' }, 'u-para-1'));
+  ok(act('updateCrewStatus', { caseId: id, status: 'arrived' }, 'u-para-1'));
+  eq(c().triage, null, 'arrival does not derive triage from crew acuity');
+  ok(act('recordTriage', { caseId: id, priority: 2 }, 'u-er-nurse-1'));
+  eq([c().triage.priority, c().triage.source, c().crewAcuity], [2, 'staff-entered', { level: 'moderate', source: 'crew' }], 'staff triage recorded separately; crew acuity unchanged');
+  // A citizen cannot supply a crew acuity.
+  const cit = ok(act('submitArrival', { destinationHospitalId: H, concern: 'x', deviceRef: 'device-acu', crewAcuity: 'high' }, 'u-citizen-public'));
+  eq(S().cases[cit.result.caseId].crewAcuity, null, 'only a crew can report acuity');
+});
+
+test('Task 5', 'handover resent twice stays one case with two "handover updated" entries listing the changed fields', () => {
+  const { S, act, advance } = setup();
+  const cases0 = values(S(), 'cases').length;
+  const r = ok(act('submitArrival', crewRun({ clientRef: 'twice', crewAcuity: 'high', requirements: { monitor: true },
+    vitals: [{ type: 'HR', value: 120, takenAt: T0 }], interventions: ['IV access'] }), 'u-para-1'));
+  const id = r.result.caseId;
+  const n = () => S().arrivalNotices[S().cases[id].noticeId];
+  advance(3);
+  ok(act('submitArrival', { clientRef: 'twice', vitals: [{ type: 'SpO2', value: 90, takenAt: addMinutes(T0, 3) }] }, 'u-para-1'));
+  advance(3);
+  ok(act('submitArrival', { caseId: id, history: 'Diabetes', requirements: { isolation: true }, etaAt: addMinutes(T0, 15) }, 'u-para-4'));
+  rejected(act('submitArrival', { caseId: id, approxAge: 300 }, 'u-para-1'), 'invalid', 'age');
+  eq(values(S(), 'cases').length, cases0 + 1, 'still one case');
+  eq([n().revision, n().updates.length], [3, 2], 'version bumped twice, two update entries');
+  eq(n().updates[0].changes, [{ field: 'vitals', readingId: n().handover.vitals[1].id, type: 'SpO2' }], 'first update lists the new reading');
+  eq(n().updates[1].changes.map((ch) => ch.field), ['handover.history', 'requirements.isolation', 'etaAt'], 'second update lists its fields');
+  eq(n().updates[1].by, 'u-para-4', 'who sent the update');
+  const audits = auditLog(S(), { recordId: id, action: 'submitArrival' });
+  eq(audits.length, 3, 'one audit entry per send');
+  const updates = audits.filter((a) => a.summary.code === 'audit.handoverUpdated');
+  eq(updates.length, 2, 'two "handover updated" audit entries');
+  assert(text(updates.at(-1).summary).startsWith('Handover updated for'), 'plain-language summary');
+  eq(updates.map((a) => a.details.length).sort(), [1, 3], 'audit entries list the changed fields');
+  const notes = notificationsFor(S(), S().users['u-er-coord']).filter((x) => x.type === 'handover_updated' && x.ref?.id === id);
+  eq(notes.length, 2, 'the ER is told about each update');
+  assert(text(notes[0].message).includes('Handover updated'), 'notification text');
+});
+
+test('Task 5', 'crew status flow: sent → en route → arrived; acknowledged and handover complete belong to the ER; invalid jumps rejected', () => {
+  const { S, act } = setup();
+  const id = ok(act('submitArrival', crewRun({ clientRef: 'flow' }), 'u-para-1')).result.caseId;
+  const st = () => S().arrivalNotices[S().cases[id].noticeId].status;
+  eq(st(), 'submitted', 'sent');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'acknowledged' }, 'u-para-1'), 'invalid', 'Only the receiving ER can acknowledge');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'arrived' }, 'u-para-1'), 'invalid', 'The case is sent; it cannot move to arrived yet');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'handover_complete' }, 'u-para-1'), 'invalid', 'completed by the receiving ER');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'draft' }, 'u-para-1'), 'invalid', 'Choose en route or arrived');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'en_route' }, 'u-er-coord'), 'forbidden', 'Only the ambulance crew');
+  rejected(act('acknowledgeArrival', { caseId: id }, 'u-para-1'), 'forbidden');
+  ok(act('acknowledgeArrival', { caseId: id }, 'u-er-coord'));
+  eq(st(), 'acknowledged', 'the ER acknowledged');
+  ok(act('updateCrewStatus', { caseId: id, status: 'en_route' }, 'u-para-1'));
+  eq([st(), S().ambulanceAssignments[S().cases[id].ambulanceAssignmentId].status], ['en_route', 'en_route'], 'en route');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'en_route' }, 'u-para-1'), 'invalid', 'it cannot move to en route');
+  ok(act('updateCrewStatus', { caseId: id, status: 'arrived' }, 'u-para-1'));
+  const loc = S().patients[S().cases[id].patientId].location;
+  eq([st(), loc.kind, loc.hospitalId], ['arrived', 'er_waiting', H], 'arrived: one accurate location at the ER door');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'arrived' }, 'u-para-1'), 'invalid', 'already');
+  rejected(act('updateCrewStatus', { caseId: id, status: 'en_route' }, 'u-para-1'), 'invalid');
+  const task = values(S(), 'tasks').find((t) => t.category === 'ambulance_handover' && t.linked.caseId === id);
+  assert(task, 'arrival creates the ER handover task');
+  rejected(act('updateTaskStatus', { taskId: task.id, status: 'done' }, 'u-para-1'), 'forbidden');
+  ok(act('updateTaskStatus', { taskId: task.id, status: 'done' }, 'u-er-nurse-1'));
+  eq(st(), 'handover_complete', 'the ER completes the handover');
+  assert(notificationsFor(S(), S().users['u-para-4']).some((x) => x.type === 'handover_complete' && x.ref?.id === id), 'the whole unit hears handover complete');
+});
+
+test('Task 5', 'admin can read the audit log but cannot perform any clinical action', () => {
+  const { S, act } = setup();
+  const admin = S().users['u-admin'];
+  assert(can(admin, 'viewAuditLog', null).allowed, 'admin reads the audit log');
+  for (const u of ['u-er-coord', 'u-er-nurse-1', 'u-para-1', 'u-citizen-public']) assert(!can(S().users[u], 'viewAuditLog', null).allowed, `${u} cannot read the audit log`);
+  const before = JSON.stringify(S());
+  const attempts = [
+    ['acknowledgeArrival', { caseId: 'case-laurel' }], ['recordTriage', { caseId: 'case-reed', priority: 2 }], ['confirmArrival', { caseId: 'case-laurel' }],
+    ['requestClarification', { caseId: 'case-laurel', question: 'x' }], ['assignCoordinator', { caseId: 'case-laurel', coordinatorId: 'u-er-coord' }],
+    ['reserveBed', { bedId: 'bed-er-04', caseId: 'case-laurel' }], ['confirmPlacement', { bedId: 'bed-er-10', caseId: 'case-ivy' }],
+    ['verifyReadiness', { bedId: 'bed-er-04' }], ['submitArrival', crewRun()], ['updateCrewStatus', { caseId: 'case-ivy', status: 'arrived' }],
+    ['changeDestination', { caseId: 'case-ivy', toHospitalId: 'h-rimal', reason: 'x' }], ['cancelCase', { caseId: 'case-ivy', reason: 'x' }],
+    ['requestTransfer', { caseId: 'case-reed', reason: 'x' }], ['orderDiagnostic', { patientId: 'p-reed', type: 'ct_head' }],
+  ];
+  for (const [name, payload] of attempts) {
+    rejected(act(name, payload, 'u-admin'), 'forbidden');
+    const pf = preflight(S(), name, payload, 'u-admin', T0, { permissionOnly: true });
+    assert(!pf.ok && pf.code === 'forbidden', `${name}: preflight explains the disabled button`);
+  }
+  eq(JSON.stringify(S()), before, 'nothing changed');
+  // The log reads in plain language and filters by user, record, action and date.
+  ok(act('acknowledgeArrival', { caseId: 'case-laurel' }, 'u-er-coord'));
+  const byUser = auditLog(S(), { userId: 'u-er-coord' });
+  assert(byUser.length && byUser.every((e) => e.actorId === 'u-er-coord'), 'filter by user');
+  eq(auditLog(S(), { recordId: 'case-laurel', action: 'acknowledgeArrival' }).map((e) => text(e.summary)), ['SL-2042 acknowledged; coordinator Amira Haddad'].map(() => text(byUser[0].summary)), 'filter by record and action');
+  eq(auditLog(S(), { from: addMinutes(T0, 1) }).length, 0, 'filter by date');
 });
 
 // Must stay last: proves no action is a stub.

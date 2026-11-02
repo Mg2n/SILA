@@ -4,7 +4,7 @@
 
 import { msg } from './messages.js';
 
-export const SCHEMA_VERSION = 2; // 2: message codes + capacity confirmation
+export const SCHEMA_VERSION = 3; // 2: message codes + capacity confirmation; 3: ambulance units + structured vitals
 export const PRIMARY_HOSPITAL_ID = 'h-wadi-noor';
 
 export const COLLECTIONS = [
@@ -152,9 +152,11 @@ export function seed(now = new Date()) {
   user('u-porter', 'Samir Aziz', 'porter', H, null);
   user('u-admin', 'Ravi Menon', 'admin', H, null);
   user('u-rimal-coord', 'Yara Khoury', 'er_coordinator', 'h-rimal', 'ER');
-  user('u-para-1', 'Tariq Saeed', 'paramedic', null, null, { ambulanceId: 'AMB-12', organization: 'Regional Ambulance Service (demo)' });
-  user('u-para-2', 'Lina Farouk', 'paramedic', null, null, { ambulanceId: 'AMB-07', organization: 'Regional Ambulance Service (demo)' });
-  user('u-para-3', 'Jamal Idris', 'paramedic', null, null, { ambulanceId: 'AMB-21', organization: 'Regional Ambulance Service (demo)' });
+  // Two ambulance units, each with a named crew. A crew sees only cases assigned to its unit.
+  user('u-para-1', 'Tariq Saeed', 'paramedic', null, null, { ambulanceId: 'WN-A12', organization: 'Regional Ambulance Service (demo)' });
+  user('u-para-4', 'Hamad Al-Otaibi', 'paramedic', null, null, { ambulanceId: 'WN-A12', organization: 'Regional Ambulance Service (demo)' });
+  user('u-para-2', 'Lina Farouk', 'paramedic', null, null, { ambulanceId: 'WN-A07', organization: 'Regional Ambulance Service (demo)' });
+  user('u-para-3', 'Jamal Idris', 'paramedic', null, null, { ambulanceId: 'WN-A07', organization: 'Regional Ambulance Service (demo)' });
   user('u-citizen-1', 'Demo caller — Hessa', 'citizen', null, null);
   user('u-citizen-2', 'Demo caller — Yousef', 'citizen', null, null);
   // No-login citizen sessions act through this shared account; each device owns only the cases it submitted (deviceRef).
@@ -238,7 +240,7 @@ export function seed(now = new Date()) {
     put('case', { ...baseCase, id: cid, ref, patientId: pid, source, destinationHospitalId: H, department: 'ER', journey: 'expected',
       noticeId: nid, submittedBy, reportedConcern: notice.reported.concern, createdAt: notice.submittedAt,
       destinationHistory: [{ hospitalId: H, at: notice.submittedAt, by: submittedBy, reason: 'Initial destination' }], ...extra });
-    put('arrivalNotice', { id: nid, caseId: cid, source, submittedBy, clientRef: `seed-${key}`, revision: 1, clinicallyVerified: false,
+    put('arrivalNotice', { id: nid, caseId: cid, source, submittedBy, clientRef: `seed-${key}`, revision: 1, clinicallyVerified: false, updates: [],
       acknowledged: null, handover: null, transcript: null, extractionMethod: source === 'citizen' ? 'demo-rule-based' : 'crew-entered',
       timeline: [{ at: notice.submittedAt, by: submittedBy, event: 'submitted', detail: msg('tl.sent', { hospital: s.hospitals[H].shortName }) }],
       createdAt: notice.submittedAt, ...notice });
@@ -250,38 +252,42 @@ export function seed(now = new Date()) {
   };
   const reported = (concern, rest = {}) => ({ ageText: null, concern, onset: null, awakeBreathing: 'unknown', conditions: null,
     allergies: null, patientCount: 1, location: null, contact: null, accessibilityNeeds: null, ...rest });
-  const ambulance = (key, ambulanceId, crew, currentLocation, status) =>
-    put('ambulanceAssignment', { id: `amb-${key}`, ambulanceId, crewUserIds: crew, caseId: `case-${key}`, destinationHospitalId: H, status, currentLocation, createdAt: at(-20) });
+  const ambulance = (key, ambulanceId, currentLocation, status) =>
+    put('ambulanceAssignment', { id: `amb-${key}`, ambulanceId, crewUserIds: values(s, 'users').filter((u) => u.ambulanceId === ambulanceId).map((u) => u.id),
+      caseId: `case-${key}`, destinationHospitalId: H, status, currentLocation, createdAt: at(-20) });
+  // Structured readings: { id, type, value, unit, takenAt, enteredBy } — see vitals.js. No interpretation is stored.
+  const vital = (key, n, type, value, unit, min, by) => ({ id: `vs-${key}-${n}`, type, value, unit, takenAt: at(min), enteredBy: by });
+  const handover = (fields) => ({ crewNotes: null, interventions: [], receivingRequirements: null, history: null, allergies: null, ...fields });
 
   incoming('ivy', 'SL-2041', 'Ivy 05', 62, 'ambulance', 'u-para-1', {
     submittedAt: at(-18), status: 'acknowledged', etaAt: at(12), transportMode: 'ambulance',
     acknowledged: { by: 'u-er-coord', at: at(-15) },
     reported: reported('Chest pain radiating to left arm, started ~40 min before crew arrival', { ageText: 'Early 60s', onset: '~40 min before call', awakeBreathing: 'yes', location: 'Al Safa district, Street 14 (simulated)' }),
-    handover: { crewAcuity: { level: 'High', source: 'crew-reported' }, history: 'Hypertension (reported by family)', allergies: 'None known',
-      vitals: [{ name: 'Heart rate', value: '108', unit: 'bpm', at: at(-16) }, { name: 'Blood pressure', value: '152/94', unit: 'mmHg', at: at(-16) },
-        { name: 'SpO₂', value: '95', unit: '%', at: at(-16) }, { name: 'Respiratory rate', value: '20', unit: '/min', at: at(-16) }],
-      interventions: ['12-lead ECG recorded by crew', 'Oxygen via nasal cannula'], receivingRequirements: 'Monitored bed on arrival' },
-  }, { requirements: { isolation: false, ventilator: false }, crewAcuity: { level: 'High', source: 'crew-reported' }, ambulanceAssignmentId: 'amb-ivy' });
-  ambulance('ivy', 'AMB-12', ['u-para-1'], 'Ring Road, exit 7 (simulated)', 'en_route');
+    handover: handover({ crewAcuity: { level: 'high', source: 'crew' }, history: 'Hypertension (reported by family)', allergies: 'None known',
+      vitals: [vital('ivy', 1, 'HR', 108, 'bpm', -16, 'u-para-1'), vital('ivy', 2, 'BP', { systolic: 152, diastolic: 94 }, 'mmHg', -16, 'u-para-1'),
+        vital('ivy', 3, 'SpO2', 95, '%', -16, 'u-para-1'), vital('ivy', 4, 'RR', 20, '/min', -16, 'u-para-1')],
+      interventions: ['12-lead ECG recorded', 'Oxygen'], receivingRequirements: null }),
+  }, { requirements: { isolation: false, ventilator: false, monitor: true }, crewAcuity: { level: 'high', source: 'crew' }, ambulanceAssignmentId: 'amb-ivy' });
+  ambulance('ivy', 'WN-A12', 'Ring Road, exit 7 (simulated)', 'en_route');
 
   incoming('laurel', 'SL-2042', 'Laurel 14', 25, 'ambulance', 'u-para-2', {
     submittedAt: at(-6), status: 'submitted', etaAt: at(25), transportMode: 'ambulance',
     reported: reported('Motorcycle collision, right leg injury, conscious and talking', { ageText: 'Mid 20s', onset: '~20 min ago', awakeBreathing: 'yes', location: 'Coastal highway km 31 (simulated)' }),
-    handover: { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, history: null, allergies: null,
-      vitals: [{ name: 'Heart rate', value: '96', unit: 'bpm', at: at(-7) }, { name: 'Blood pressure', value: '128/80', unit: 'mmHg', at: at(-7) }],
-      interventions: ['Splint applied to right leg'], receivingRequirements: 'Trauma bay; imaging likely' },
-  }, { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, ambulanceAssignmentId: 'amb-laurel' });
-  ambulance('laurel', 'AMB-07', ['u-para-2'], 'Coastal highway km 31 (simulated)', 'en_route');
+    handover: handover({ crewAcuity: { level: 'moderate', source: 'crew' },
+      vitals: [vital('laurel', 1, 'HR', 96, 'bpm', -7, 'u-para-2'), vital('laurel', 2, 'BP', { systolic: 128, diastolic: 80 }, 'mmHg', -7, 'u-para-2')],
+      interventions: ['Splint'], receivingRequirements: 'Trauma bay; imaging likely' }),
+  }, { crewAcuity: { level: 'moderate', source: 'crew' }, ambulanceAssignmentId: 'amb-laurel' });
+  ambulance('laurel', 'WN-A07', 'Coastal highway km 31 (simulated)', 'en_route');
 
   incoming('moss', 'SL-2043', 'Moss 62', 81, 'ambulance', 'u-para-3', {
     submittedAt: at(-14), status: 'en_route', etaAt: at(8), transportMode: 'ambulance',
     acknowledged: { by: 'u-er-coord', at: at(-11) },
     reported: reported('Found on floor at home, confused, unable to stand', { ageText: 'About 80', onset: 'Unknown — found this morning', awakeBreathing: 'yes', location: 'Old town, Lane 3 (simulated)' }),
-    handover: { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, history: 'Lives alone; daughter on the way', allergies: 'Penicillin (reported by daughter)',
-      vitals: [{ name: 'Heart rate', value: '88', unit: 'bpm', at: at(-12) }, { name: 'Temperature', value: '37.9', unit: '°C', at: at(-12) }],
-      interventions: ['Blood glucose checked by crew'], receivingRequirements: 'Falls assessment; family contact pending' },
-  }, { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, ambulanceAssignmentId: 'amb-moss', assignedCoordinatorId: 'u-er-coord' });
-  ambulance('moss', 'AMB-21', ['u-para-3'], 'University bridge (simulated)', 'en_route');
+    handover: handover({ crewAcuity: { level: 'moderate', source: 'crew' }, history: 'Lives alone; daughter on the way', allergies: 'Penicillin (reported by daughter)',
+      vitals: [vital('moss', 1, 'HR', 88, 'bpm', -12, 'u-para-3'), vital('moss', 2, 'Temp', 37.9, '°C', -12, 'u-para-3'), vital('moss', 3, 'glucose', 6.1, 'mmol/L', -12, 'u-para-3')],
+      interventions: ['Blood glucose checked'], receivingRequirements: 'Falls assessment; family contact pending' }),
+  }, { crewAcuity: { level: 'moderate', source: 'crew' }, ambulanceAssignmentId: 'amb-moss', assignedCoordinatorId: 'u-er-coord' });
+  ambulance('moss', 'WN-A07', 'University bridge (simulated)', 'en_route');
 
   incoming('reed', 'SL-2044', 'Reed 38', 70, 'citizen', 'u-citizen-1', {
     submittedAt: at(-4), status: 'submitted', etaAt: at(15), transportMode: 'private_car',

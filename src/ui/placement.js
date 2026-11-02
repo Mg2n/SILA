@@ -1,7 +1,7 @@
 // Placement flow: reserve (with expiry) → extend/release with reason → confirm placement.
 // Each bed or patient option is checked by the engine; unusable ones are disabled and say why.
 
-import { compatibilityError } from '../readiness.js';
+import { compatibilityError, REQUIREMENT_KEYS } from '../readiness.js';
 import { t, tm } from '../i18n.js';
 import { erBeds, selectIncoming, selectAwaitingTriage, selectWaiting, bedBoardStatus } from '../selectors.js';
 import { h, nextUid } from './dom.js';
@@ -9,9 +9,8 @@ import { icon } from './icons.js';
 import { openDialog, field, run, state, now, check, canSeePatient } from './core.js';
 import { forecastLine, pill } from './components.js';
 
-const REQS = ['isolation', 'ventilator'];
 const reqText = (requirements) => {
-  const list = REQS.filter((k) => requirements?.[k]).map((k) => t(`req.${k}`));
+  const list = REQUIREMENT_KEYS.filter((k) => requirements?.[k]).map((k) => t(`req.${k}`));
   return t('placement.requirements', { list: list.length ? list.join(', ') : t('incoming.noRequirements') });
 };
 

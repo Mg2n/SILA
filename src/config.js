@@ -29,4 +29,5 @@ export const TRAVEL = {
   taxi: { fixed: 8, perKm: 2 },
   walking: { fixed: 0, perKm: 12 },
   unknown: { fixed: 3, perKm: 2 },
+  ambulance: { fixed: 1, perKm: 1.5 }, // simulated: lights and sirens, no parking
 };

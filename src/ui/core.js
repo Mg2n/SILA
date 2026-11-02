@@ -28,14 +28,15 @@ export function initStore() {
 export function isStaff(u) {
   return !!u && !['citizen', 'paramedic'].includes(u.role) && u.active !== false;
 }
+export const isCrew = (u) => !!u && u.role === 'paramedic' && !!u.ambulanceId && u.active !== false;
 
-// The active demo account is per tab (sessionStorage), so two tabs can act as different staff.
+// The active demo account is per tab (sessionStorage), so two tabs can act as different people (staff or a crew).
 export function currentUser() {
   const s = state();
   let id = null;
   try { id = sessionStorage.getItem(SESSION_KEY); } catch { /* storage blocked */ }
   const u = s.users[id];
-  return isStaff(u) ? u : s.users[DEFAULT_USER];
+  return isStaff(u) || isCrew(u) ? u : s.users[DEFAULT_USER];
 }
 // Which department dashboards an account may open: ER/ICU staff their own; hospital-wide roles both.
 export function deptAccess(u) {
@@ -43,6 +44,8 @@ export function deptAccess(u) {
 }
 export const QUEUE_ROLES = ['housekeeping', 'maintenance_tech', 'biomed_tech', 'diagnostics'];
 export function routeAllowed(route, u) {
+  if (isCrew(u)) return false; // crews use the mobile crew screens only
+  if (route === 'admin') return u.role === 'admin';
   if (route === 'er') return deptAccess(u).includes('ER');
   if (route === 'icu') return deptAccess(u).includes('ICU');
   if (route === 'queue') return QUEUE_ROLES.includes(u.role);
@@ -50,6 +53,8 @@ export function routeAllowed(route, u) {
   return route === 'tasks';
 }
 export function defaultRoute(u) {
+  if (isCrew(u)) return 'crew';
+  if (u.role === 'admin') return 'admin';
   if (u.role === 'porter') return 'transport';
   if (QUEUE_ROLES.includes(u.role)) return 'queue';
   return u.department === 'ICU' ? 'icu' : 'er';
@@ -107,6 +112,19 @@ export function run(action, payload, { seen, quiet = false, silent = false, onDo
   return res;
 }
 
+// ---------- "Handover updated" badge: which revision this user last opened (UI state, per user, this browser) ----------
+const VIEWED_KEY = (uid) => `sila.viewed.${uid}`;
+function viewedMap() {
+  try { return JSON.parse(localStorage.getItem(VIEWED_KEY(currentUser().id)) ?? '{}'); } catch { return {}; }
+}
+export const viewedRevision = (caseId) => viewedMap()[caseId] ?? 1;
+export function markViewed(caseId, revision) {
+  const m = viewedMap();
+  if ((m[caseId] ?? 1) >= revision) return;
+  m[caseId] = revision;
+  try { localStorage.setItem(VIEWED_KEY(currentUser().id), JSON.stringify(m)); } catch { /* storage blocked */ }
+}
+
 // ---------- Citizen sessions (no login) ----------
 // A citizen acts through the shared citizen account; this browser's device id decides which notices it owns.
 export const CITIZEN_USER = 'u-citizen-public';
@@ -149,6 +167,7 @@ export function openRecord(ref) {
 export function closeDrawer() {
   const d = ctx.ui.drawer;
   ctx.ui.drawer = null;
+  ctx.ui.viewSnapshot = null;
   requestRender();
   // Return focus to the card that opened it, once re-rendered.
   if (d) requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-focus-key="open:${d.type}:${d.id}"]`)?.focus()));

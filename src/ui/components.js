@@ -30,19 +30,19 @@ export function panel(title, iconName, count, ...children) {
  * - Direct actions run immediately (full preflight: permission + transition).
  * - `open` actions (dialogs) check permission only; the dialog collects the required input and the engine validates.
  */
-export function actionButton({ action, payload, label, kind = '', iconName = null, open = null, focusKey = null, small = false }) {
+export function actionButton({ action, payload, label, kind = '', iconName = null, open = null, focusKey = null, small = false, big = false, onDone = null }) {
   const verdict = check(action, payload, { permissionOnly: !!open });
   const seen = seenVersion(action, payload);
   const whyId = nextUid('why');
   const btn = h('button', {
-    type: 'button', class: ['btn', kind, small && 'small'], disabled: !verdict.ok,
+    type: 'button', class: ['btn', kind, small && 'small', big && 'big'], disabled: !verdict.ok,
     'aria-describedby': verdict.ok ? null : whyId, 'data-focus-key': focusKey ?? `${action}:${JSON.stringify(payload)}`,
     onclick: (e) => {
       e.stopPropagation();
       if (open) open(seen);
-      else run(action, payload, { seen });
+      else run(action, payload, { seen, onDone });
     },
-  }, iconName ? icon(iconName, { size: 16 }) : null, label);
+  }, iconName ? icon(iconName, { size: big ? 20 : 16 }) : null, label);
   return h('div', { class: 'action' }, btn,
     verdict.ok ? null : h('span', { class: 'why', id: whyId }, icon('info', { size: 14 }), t('common.whyDisabled', { reason: verdict.reason })));
 }

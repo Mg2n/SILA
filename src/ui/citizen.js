@@ -10,7 +10,7 @@ import { h, append, nextUid } from './dom.js';
 import { icon, citizenIllustration, ambulanceCardIllustration } from './icons.js';
 import { state, now, requestRender, runCitizen, checkCitizen, deviceRef } from './core.js';
 import { pill } from './components.js';
-import { createVoice, speechImpl } from './voice.js';
+import { voicePanel, stopVoice } from './voice.js';
 import { cityMap } from './citymap.js';
 
 // ---------- Draft (this tab, survives reload) ----------
@@ -69,19 +69,12 @@ export function renderWelcome(main) {
       h('a', { class: 'entry-card', href: '#/citizen', 'data-focus-key': 'entry-citizen' },
         citizenIllustration(), h('span', { class: 'entry-title', text: t('welcome.citizenTitle') }), h('span', { class: 'muted', text: t('welcome.citizenBody') }),
         h('span', { class: 'entry-go' }, icon('arrow', { size: 20 }))),
-      h('a', { class: 'entry-card', href: '#/ambulance', 'data-focus-key': 'entry-ambulance' },
+      h('a', { class: 'entry-card', href: '#/crew', 'data-focus-key': 'entry-ambulance' },
         ambulanceCardIllustration(), h('span', { class: 'entry-title', text: t('welcome.ambulanceTitle') }), h('span', { class: 'muted', text: t('welcome.ambulanceBody') }),
-        h('span', { class: 'chip', text: t('welcome.comingNext') }))),
+        h('span', { class: 'entry-go' }, icon('arrow', { size: 20 })))),
     h('a', { class: 'staff-entry', href: '#/er', 'data-focus-key': 'entry-staff' }, icon('staff', { size: 22 }),
       h('span', {}, h('strong', { text: t('welcome.staffTitle') }), h('span', { class: 'small muted', text: ` — ${t('welcome.staffBody')}` }))),
     emergencyBox(),
-  ]);
-}
-
-export function renderAmbulancePlaceholder(main) {
-  append(main, [
-    h('section', { class: 'hero' }, ambulanceCardIllustration(), h('h1', { text: t('ambulance.placeholderTitle') }), h('p', { class: 'lead', text: t('ambulance.placeholderBody') })),
-    h('a', { class: 'btn big', href: '#/welcome' }, t('ambulance.back')),
   ]);
 }
 
@@ -122,42 +115,16 @@ function choiceCard(iconName, titleKey, bodyKey, onclick, pressed = null) {
 }
 
 // ---------- Step B: describe (voice or typed) ----------
-const voiceState = { listening: false, interim: '', errorKey: null };
-let voice = null;
-
-function startVoice() {
-  voiceState.errorKey = null;
-  voice = createVoice({
-    lang: lang() === 'ar' ? 'ar-SA' : 'en-US',
-    onFinal: (text) => { save({ transcript: `${draft().transcript} ${text}`.trim() }); requestRender(); },
-    onInterim: (text) => { voiceState.interim = text; requestRender(); },
-    onState: (listening) => { voiceState.listening = listening; requestRender(); },
-    onError: (key) => { voiceState.errorKey = key; voiceState.listening = false; requestRender(); },
-  });
-  voice.start();
-}
-
 export function renderCapture(main) {
   const d = draft();
-  const supported = !!speechImpl();
   const id = nextUid('transcript');
-  const errId = nextUid('voice-error');
   const ready = d.transcript.trim().length > 0;
   append(main, [
     stepper(2),
     h('h1', { text: t('capture.title') }),
     h('p', { class: 'muted', text: t('capture.prompts') }),
-    h('section', { class: 'panel voice-panel', 'aria-label': t('start.voice') },
-      supported
-        ? h('div', { class: 'voice-row' },
-          bigButton(voiceState.listening ? t('voice.stop') : t('voice.start'), () => (voiceState.listening ? voice?.stop() : startVoice()),
-            { kind: voiceState.listening ? 'danger' : 'primary', iconName: 'mic', describedBy: voiceState.errorKey ? errId : null, focusKey: 'voice-toggle' }),
-          h('p', { class: ['voice-status', voiceState.listening && 'on'], role: 'status' },
-            h('span', { class: 'dot', 'aria-hidden': 'true' }), voiceState.listening ? t('voice.listening') : t('voice.idle'),
-            voiceState.interim ? h('em', { text: ` “${voiceState.interim}”` }) : null))
-        : note(t('voice.unsupported'), 'warn', 'mic'),
-      voiceState.errorKey ? h('p', { class: 'form-error', id: errId, role: 'alert', text: t(voiceState.errorKey) }) : null,
-      h('p', { class: 'small muted', text: t('voice.privacy') })),
+    voicePanel({ key: 'citizen', lang: lang() === 'ar' ? 'ar-SA' : 'en-US', label: t('start.voice'), rerender: requestRender,
+      onFinal: (text) => save({ transcript: `${draft().transcript} ${text}`.trim() }) }),
     h('div', { class: 'field' },
       h('label', { for: id, text: t('capture.textLabel') }),
       h('textarea', { id, rows: 7, dir: 'auto', 'data-preserve': 'citizen:transcript', 'data-model-backed': '', value: d.transcript, 'aria-describedby': `${id}-hint`,
@@ -169,7 +136,7 @@ export function renderCapture(main) {
       h('span', { class: 'hint', id: `${id}-hint`, text: t('capture.textHint') })),
     h('div', { class: 'step-actions' },
       h('a', { class: 'btn big', href: '#/citizen' }, t('common.back')),
-      bigButton(t('capture.continue'), () => { voice?.stop(); startFrom(draft().transcript); go('citizen/review'); },
+      bigButton(t('capture.continue'), () => { stopVoice(); startFrom(draft().transcript); go('citizen/review'); },
         { disabled: !ready, describedBy: ready ? null : 'need-text', focusKey: 'capture-continue' })),
     ready ? null : h('p', { class: 'small muted', id: 'need-text', text: t('capture.needText') }),
   ]);
@@ -334,7 +301,7 @@ export function renderHospitals(main) {
   ]);
 }
 
-function hospitalItem(x, isSelected, mode, select, n) {
+export function hospitalItem(x, isSelected, mode, select, n) {
   const capIcon = { high: 'check', medium: 'clock', low: 'alert' }[x.capacity];
   return h('li', {},
     h('button', { type: 'button', class: ['hospital-item', isSelected && 'selected'], 'aria-pressed': String(isSelected), onclick: () => select(x.id),

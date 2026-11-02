@@ -41,4 +41,8 @@ export const BLOCKER_TYPE_MSG = {
 export const SOURCE_MSG = { ambulance: msg('source.ambulance'), citizen: msg('source.citizen'), walk_in: msg('source.walk_in'), internal: msg('source.internal') };
 export const WHY_MSG = { discharge: msg('why.discharge'), admit_ward: msg('why.admit_ward'), step_down: msg('why.step_down') };
 export const DECISION_MSG = { discharge: msg('decision.discharge'), admit_ward: msg('decision.admit_ward') };
+export const NOTICE_STATUS_MSG = {
+  submitted: msg('noticeLower.submitted'), acknowledged: msg('noticeLower.acknowledged'), en_route: msg('noticeLower.en_route'), arrived: msg('noticeLower.arrived'),
+  handover_complete: msg('noticeLower.handover_complete'), canceled: msg('noticeLower.canceled'), closed: msg('noticeLower.closed'),
+};
 export const NO_TEXT = msg('common.empty');

@@ -10,9 +10,10 @@ import {
 } from './data.js';
 import {
   msg, iso, DEPT_MSG, ROLE_MSG, CASE_STATUS_MSG, TRANSFER_STATUS_MSG, TASK_STATUS_MSG, TICKET_STATUS_MSG, RESERVATION_STATE_MSG,
-  EQUIP_MSG, DIAG_MSG, SEVERITY_MSG, BLOCKER_TYPE_MSG, SOURCE_MSG, WHY_MSG, DECISION_MSG, NO_TEXT,
+  EQUIP_MSG, DIAG_MSG, SEVERITY_MSG, BLOCKER_TYPE_MSG, SOURCE_MSG, WHY_MSG, DECISION_MSG, NOTICE_STATUS_MSG, NO_TEXT,
 } from './messages.js';
 import { can } from './permissions.js';
+import { vitalProblem, normalizeReading } from './vitals.js';
 import {
   deriveBedReadiness, reservationState, activeReservationForBed, activeReservationForCase, openTasksFor, openTicketsForBed,
   latestEquipmentCheck, isCheckValid, confirmedStaffing, activeTransferForCase, PHYSICAL_BLOCKERS, compatibilityError,
@@ -181,7 +182,7 @@ export function applyAction(state, actionName, payload, user, now = new Date().t
   // (e) audit — who / what / when / reason.
   const audit = tx.create('auditEvent', {
     at: now, actorId: actor.id, actorName: actor.name, actorRole: actor.role, action: actionName,
-    summary: ctx.summary ?? msg('audit.generic', { action: actionName }), reason: ctx.reason ?? p.reason ?? null,
+    summary: ctx.summary ?? msg('audit.generic', { action: actionName }), reason: ctx.reason ?? p.reason ?? null, details: ctx.details ?? null,
     refs: ctx.refs ?? (live ? [{ entity: live.entity, id: live.id }] : []), changed: [],
   }, 'audit');
   delete audit.version; // audit events are immutable and unversioned
@@ -231,8 +232,14 @@ const find = (state, entity, id) => {
   return rec ? { rec } : { missing: NOT_FOUND[entity] };
 };
 
-const crewOf = (s, c) => (c.ambulanceAssignmentId ? s.ambulanceAssignments[c.ambulanceAssignmentId]?.crewUserIds ?? [] : []);
-const caseParties = (s, c) => [c.submittedBy, ...crewOf(s, c)].filter(Boolean);
+// The crew of a case is every member of the assigned ambulance unit (plus anyone recorded on the assignment).
+const crewOf = (s, c) => {
+  const a = c.ambulanceAssignmentId ? s.ambulanceAssignments[c.ambulanceAssignmentId] : null;
+  if (!a) return [];
+  const unit = values(s, 'users').filter((u) => u.role === 'paramedic' && u.ambulanceId === a.ambulanceId).map((u) => u.id);
+  return [...new Set([...(a.crewUserIds ?? []), ...unit])];
+};
+const caseParties = (s, c) => [...new Set([c.submittedBy, ...crewOf(s, c)].filter(Boolean))];
 const patientOf = (s, c) => s.patients[c.patientId];
 const currentDept = (s, c) => patientOf(s, c)?.location.department ?? 'ER';
 const caseOfPatient = (s, pid) => values(s, 'cases').find((c) => c.patientId === pid && c.status === 'active') ?? null;
@@ -380,6 +387,23 @@ const REPORTED_FIELDS = ['ageText', 'concern', 'onset', 'awake', 'breathing', 'a
 const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 const caseStatusError = (c) => msg('err.caseStatus', { ref: c.ref, status: CASE_STATUS_MSG[c.status] });
 
+const CREW_ACUITY = ['critical', 'high', 'moderate', 'low'];
+const SEXES = ['female', 'male', 'unknown'];
+const HANDOVER_TEXT = ['history', 'allergies', 'receivingRequirements', 'crewNotes'];
+const REQ_KEYS = ['isolation', 'ventilator', 'monitor'];
+const sameJson = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+// Every new reading must be well-formed and physically possible; readings already sent are kept as they were.
+function vitalsError(p, existing, now) {
+  const known = new Set((existing ?? []).map((v) => v.id));
+  for (const r of p.vitals ?? []) {
+    if (r.id && known.has(r.id)) continue;
+    const problem = vitalProblem(r, now);
+    if (problem) return problem;
+  }
+  return null;
+}
+
 action('submitArrival', {
   // Create a new notice, or — when the same device resends (same caseId or clientRef) — update it without duplicating.
   target: (s, p) => {
@@ -388,61 +412,94 @@ action('submitArrival', {
     return existing ? { rec: s.cases[existing.caseId] } : null;
   },
   scope: (s, c, p) => (c ? caseScope(s, c, p) : {}),
-  validate: (s, c, p, actor) => {
+  validate: (s, c, p, actor, now) => {
     if (ICU_REQUEST_FIELDS.some((k) => p[k]) || p.requirements?.icu) return msg('err.arrivalNoIcu');
-    if (p.etaAt !== undefined && !validIso(p.etaAt)) return msg('err.etaInvalid');
+    if (p.etaAt !== undefined && p.etaAt !== null && !validIso(p.etaAt)) return msg('err.etaInvalid');
     if (actor.role === 'paramedic' && !actor.ambulanceId) return msg('err.crewNoAmbulance');
     if (actor.shared && !c && !nonEmpty(p.deviceRef)) return msg('err.deviceRequired');
+    if (p.crewAcuity !== undefined && p.crewAcuity !== null && !CREW_ACUITY.includes(p.crewAcuity)) return msg('err.crewAcuity');
+    if (p.sex !== undefined && p.sex !== null && !SEXES.includes(p.sex)) return msg('err.sex');
+    if (p.approxAge !== undefined && p.approxAge !== null && !(Number.isInteger(p.approxAge) && p.approxAge >= 0 && p.approxAge <= 120)) return msg('err.approxAge');
+    if (p.vitals !== undefined && !Array.isArray(p.vitals)) return msg('err.vitalType');
     if (c) {
       if (c.status !== 'active') return msg('err.caseClosedForUpdate', { ref: c.ref, status: CASE_STATUS_MSG[c.status] });
       if (patientOf(s, c).location.kind !== 'pre_hospital') return msg('err.caseArrivedUpdate', { ref: c.ref });
       if (p.destinationHospitalId && p.destinationHospitalId !== c.destinationHospitalId) return msg('err.useChangeDestination');
-      return null;
+      return vitalsError(p, s.arrivalNotices[c.noticeId]?.handover?.vitals, now);
     }
     if (!s.hospitals[p.destinationHospitalId]) return msg('err.chooseDestination');
     if (!nonEmpty(p.concern)) return msg('err.describeConcern');
-    return null;
+    return vitalsError(p, [], now);
   },
   apply: (tx, c, p, actor) => {
     const crew = actor.role === 'paramedic';
-    const handover = crew ? pick(p, ['vitals', 'interventions', 'receivingRequirements', 'history', 'allergies']) : null;
-    if (crew && p.crewAcuity) handover.crewAcuity = { level: p.crewAcuity, source: 'crew-reported' };
+    const newReadings = (existing) => {
+      const known = new Set(existing.map((v) => v.id));
+      return (p.vitals ?? []).filter((r) => !r.id || !known.has(r.id)).map((r) => normalizeReading(r, actor.id, nextId(tx.s, 'vs')));
+    };
 
     if (c) {
       const notice = tx.s.arrivalNotices[c.noticeId];
+      const before = structuredClone({ reported: notice.reported, handover: notice.handover, etaAt: notice.etaAt, requirements: c.requirements, crewAcuity: c.crewAcuity, transcript: notice.transcript });
+      const added = crew ? newReadings(notice.handover?.vitals ?? []) : [];
+      const handover = crew ? {
+        ...notice.handover,
+        ...pick(p, HANDOVER_TEXT),
+        ...(p.interventions ? { interventions: [...p.interventions] } : {}),
+        ...(p.crewAcuity ? { crewAcuity: { level: p.crewAcuity, source: 'crew' } } : {}),
+        vitals: [...(notice.handover?.vitals ?? []), ...added], // readings over time are appended, never overwritten
+      } : notice.handover;
       tx.update(notice, {
         reported: { ...notice.reported, ...pick(p, REPORTED_FIELDS) },
-        handover: crew ? { ...notice.handover, ...handover } : notice.handover,
+        handover,
         transcript: p.transcript ?? notice.transcript,
         etaAt: p.etaAt ?? notice.etaAt,
         revision: notice.revision + 1,
       });
-      tx.timeline(notice, 'updated', msg('tl.revision', { n: notice.revision }));
       if (p.concern) c.reportedConcern = p.concern;
-      if (crew && p.crewAcuity) c.crewAcuity = { level: p.crewAcuity, source: 'crew-reported' };
-      if (crew && p.requirements) c.requirements = { ...c.requirements, ...pick(p.requirements, ['isolation', 'ventilator', 'monitor']) };
-      if (p.approxAge !== undefined) tx.update(patientOf(tx.s, c), { approxAge: p.approxAge });
-      return { summary: msg('audit.noticeUpdated', { ref: c.ref, n: notice.revision }), result: { caseId: c.id, created: false }, noticeId: notice.id, caseRec: c };
+      if (crew && p.crewAcuity) c.crewAcuity = { level: p.crewAcuity, source: 'crew' }; // never touches the staff triage field
+      if (crew && p.requirements) c.requirements = { ...c.requirements, ...pick(p.requirements, REQ_KEYS) };
+      const patient = patientOf(tx.s, c);
+      const beforePatient = { approxAge: patient.approxAge ?? null, sex: patient.sex ?? null };
+      if (p.approxAge !== undefined || p.sex !== undefined) tx.update(patient, { approxAge: p.approxAge ?? patient.approxAge, sex: p.sex ?? patient.sex ?? null });
+
+      // Which fields changed, for the audit entry and the ER's "What changed" list.
+      const changes = [];
+      for (const k of ['approxAge', 'sex']) if (!sameJson(beforePatient[k], patient[k] ?? null)) changes.push({ field: `patient.${k}` });
+      for (const k of Object.keys({ ...before.reported, ...notice.reported })) if (!sameJson(before.reported?.[k], notice.reported[k])) changes.push({ field: `reported.${k}` });
+      for (const k of [...HANDOVER_TEXT, 'interventions']) if (!sameJson(before.handover?.[k], notice.handover?.[k])) changes.push({ field: `handover.${k}` });
+      if (!sameJson(before.crewAcuity, c.crewAcuity)) changes.push({ field: 'crewAcuity', level: c.crewAcuity?.level });
+      for (const k of REQ_KEYS) if (!sameJson(before.requirements?.[k], c.requirements?.[k])) changes.push({ field: `requirements.${k}`, value: !!c.requirements?.[k] });
+      if (!sameJson(before.etaAt, notice.etaAt)) changes.push({ field: 'etaAt', value: notice.etaAt });
+      if (!sameJson(before.transcript, notice.transcript)) changes.push({ field: 'transcript' });
+      for (const v of added) changes.push({ field: 'vitals', readingId: v.id, type: v.type });
+      notice.updates = [...(notice.updates ?? []), { revision: notice.revision, at: tx.now, by: actor.id, changes }];
+      tx.timeline(notice, 'updated', msg('tl.revisionChanges', { n: notice.revision, count: changes.length }));
+      return { summary: msg('audit.handoverUpdated', { ref: c.ref, n: notice.revision, count: changes.length }), details: changes,
+        result: { caseId: c.id, created: false }, noticeId: notice.id, caseRec: c, changes };
     }
 
     const ref = nextRef(tx.s, 'SL');
-    const patient = tx.create('patient', { alias: p.patientAlias ?? ref, approxAge: p.approxAge ?? null,
+    const patient = tx.create('patient', { alias: p.patientAlias ?? ref, approxAge: p.approxAge ?? null, sex: p.sex ?? null,
       location: { kind: 'pre_hospital', hospitalId: null, department: null, since: tx.now } }, 'p');
     const caseRec = tx.create('case', {
       ref, patientId: patient.id, source: crew ? 'ambulance' : 'citizen', destinationHospitalId: p.destinationHospitalId, department: 'ER', deviceRef: crew ? null : p.deviceRef ?? null,
       status: 'active', journey: 'expected', triage: null, disposition: null, stepDown: null, transferId: null, arrivedAt: null,
-      crewAcuity: crew && p.crewAcuity ? { level: p.crewAcuity, source: 'crew-reported' } : null,
-      requirements: { isolation: false, ventilator: false, ...(crew ? pick(p.requirements ?? {}, ['isolation', 'ventilator', 'monitor']) : {}) },
+      crewAcuity: crew && p.crewAcuity ? { level: p.crewAcuity, source: 'crew' } : null,
+      requirements: { isolation: false, ventilator: false, monitor: false, ...(crew ? pick(p.requirements ?? {}, REQ_KEYS) : {}) },
       reportedConcern: p.concern, assignedCoordinatorId: null, submittedBy: actor.id, noticeId: null, ambulanceAssignmentId: null,
       destinationHistory: [{ hospitalId: p.destinationHospitalId, at: tx.now, by: actor.id, reason: null }],
     }, 'case');
+    const handover = crew ? { crewNotes: null, interventions: [], receivingRequirements: null, history: null, allergies: null,
+      ...pick(p, HANDOVER_TEXT), ...(p.interventions ? { interventions: [...p.interventions] } : {}),
+      crewAcuity: p.crewAcuity ? { level: p.crewAcuity, source: 'crew' } : null, vitals: newReadings([]) } : null;
     const notice = tx.create('arrivalNotice', {
       caseId: caseRec.id, source: caseRec.source, submittedBy: actor.id, submittedAt: tx.now, clientRef: p.clientRef ?? null, deviceRef: caseRec.deviceRef,
       status: 'submitted', acknowledged: null, etaAt: p.etaAt ?? null, transportMode: crew ? 'ambulance' : (p.transportMode ?? 'unknown'),
       reported: { ageText: null, onset: null, awake: 'unknown', breathing: 'unknown', awakeBreathing: 'unknown', conditions: null, allergies: null, patientCount: 1,
         location: null, contact: null, accessibilityNeeds: null, ...pick(p, REPORTED_FIELDS) },
       transcript: p.transcript ?? null, extractionMethod: p.extractionMethod ?? (crew ? 'crew-entered' : 'manual'),
-      clinicallyVerified: false, handover, revision: 1,
+      clinicallyVerified: false, handover, revision: 1, updates: [],
       timeline: [{ at: tx.now, by: actor.id, event: 'submitted', detail: msg('tl.sent', { hospital: hospitalName(tx.s, p.destinationHospitalId) }) }],
     }, 'an');
     caseRec.noticeId = notice.id;
@@ -457,9 +514,11 @@ action('submitArrival', {
   effects: (tx, _c, p, actor, ctx) => {
     const c = ctx.caseRec;
     const eta = tx.s.arrivalNotices[ctx.noticeId].etaAt;
-    const message = ctx.result.created
-      ? (eta ? msg('notifMsg.newNoticeEta', { source: SOURCE_MSG[c.source], ref: c.ref, eta: iso(eta) }) : msg('notifMsg.newNotice', { source: SOURCE_MSG[c.source], ref: c.ref }))
-      : (eta ? msg('notifMsg.handoverUpdatedEta', { ref: c.ref, eta: iso(eta) }) : msg('notifMsg.handoverUpdated', { ref: c.ref }));
+    if (!ctx.result.created) {
+      tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'handover_updated', msg('notifMsg.handoverUpdatedFields', { ref: c.ref, count: ctx.changes.length }), { entity: 'case', id: c.id });
+      return;
+    }
+    const message = eta ? msg('notifMsg.newNoticeEta', { source: SOURCE_MSG[c.source], ref: c.ref, eta: iso(eta) }) : msg('notifMsg.newNotice', { source: SOURCE_MSG[c.source], ref: c.ref });
     tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'incoming_handover', message, { entity: 'case', id: c.id });
   },
 });
@@ -652,12 +711,7 @@ action('confirmArrival', {
   },
   apply: (tx, r, p, actor) => {
     if (r.entity === 'case') {
-      tx.update(patientOf(tx.s, r), { location: { kind: 'er_waiting', hospitalId: r.destinationHospitalId, department: 'ER', since: tx.now } });
-      r.journey = 'triage_pending';
-      r.arrivedAt = tx.now;
-      const n = tx.s.arrivalNotices[r.noticeId];
-      if (n) { tx.update(n, { status: 'arrived' }); tx.timeline(n, 'arrived', msg('tl.arrived', { hospital: hospitalName(tx.s, r.destinationHospitalId) })); }
-      if (r.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[r.ambulanceAssignmentId], { status: 'arrived' });
+      arriveAtEr(tx, r);
       return { summary: msg('audit.arrivedEr', { ref: r.ref }), caseRec: r };
     }
     const c = tx.s.cases[r.caseId];
@@ -671,11 +725,7 @@ action('confirmArrival', {
   effects: (tx, r, _p, _a, ctx) => {
     const c = ctx.caseRec;
     if (r.entity === 'case') {
-      if (c.source === 'ambulance') {
-        tx.task({ category: 'ambulance_handover', title: msg('taskTitle.ambulanceHandover', { ref: c.ref }), linked: { caseId: c.id, patientId: c.patientId },
-          requiredRole: 'nurse', department: 'ER', hospitalId: c.destinationHospitalId, priority: 'high', dueMinutes: 15 });
-      }
-      tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'arrived', msg('notifMsg.arrived', { ref: c.ref }), { entity: 'case', id: c.id });
+      afterErArrival(tx, c);
       return;
     }
     tx.notify(toCoordinators(r.hospitalId, 'ER'), 'transfer_complete', msg('notifMsg.transferPlaced', { ref: c.ref, bed: tx.s.beds[r.targetBedId].label }), { entity: 'transferRequest', id: r.id });
@@ -1569,5 +1619,56 @@ action('assignCoordinator', {
   },
   effects: (tx, c, p, actor) => {
     if (p.coordinatorId !== actor.id) tx.notify({ userId: p.coordinatorId }, 'assigned', msg('notifMsg.coordinatorAssigned', { ref: c.ref }), { entity: 'case', id: c.id });
+  },
+});
+
+
+// ===========================================================================
+// Ambulance crew status: sent → (acknowledged by the ER) → en route → arrived → (handover completed by the ER)
+// ===========================================================================
+// Arrival at the ER door (not a bed placement): shared by confirmArrival and the crew's "Arrived".
+function arriveAtEr(tx, c) {
+  tx.update(patientOf(tx.s, c), { location: { kind: 'er_waiting', hospitalId: c.destinationHospitalId, department: 'ER', since: tx.now } });
+  tx.update(c, { journey: 'triage_pending', arrivedAt: tx.now });
+  const n = tx.s.arrivalNotices[c.noticeId];
+  if (n) { tx.update(n, { status: 'arrived' }); tx.timeline(n, 'arrived', msg('tl.arrived', { hospital: hospitalName(tx.s, c.destinationHospitalId) })); }
+  if (c.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[c.ambulanceAssignmentId], { status: 'arrived' });
+}
+function afterErArrival(tx, c) {
+  if (c.source === 'ambulance') {
+    tx.task({ category: 'ambulance_handover', title: msg('taskTitle.ambulanceHandover', { ref: c.ref }), linked: { caseId: c.id, patientId: c.patientId },
+      requiredRole: 'nurse', department: 'ER', hospitalId: c.destinationHospitalId, priority: 'high', dueMinutes: 15 });
+  }
+  tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'arrived', msg('notifMsg.arrived', { ref: c.ref }), { entity: 'case', id: c.id });
+}
+
+const CREW_NEXT = { en_route: ['submitted', 'acknowledged'], arrived: ['en_route'] };
+action('updateCrewStatus', {
+  target: (s, p) => find(s, 'case', p.caseId),
+  scope: (s, c, p) => caseScope(s, c, p),
+  validate: (s, c, p) => {
+    if (p.status === 'acknowledged') return msg('err.crewCannotAcknowledge');
+    if (p.status === 'handover_complete') return msg('err.crewCannotCompleteHandover');
+    if (!CREW_NEXT[p.status]) return msg('err.crewStatusUnknown');
+    if (c.status !== 'active') return caseStatusError(c);
+    if (patientOf(s, c).location.kind !== 'pre_hospital') return msg('err.caseOnSite', { ref: c.ref });
+    const from = s.arrivalNotices[c.noticeId]?.status;
+    if (!CREW_NEXT[p.status].includes(from)) return msg('err.crewStatusTransition', { from: NOTICE_STATUS_MSG[from] ?? NO_TEXT, to: NOTICE_STATUS_MSG[p.status] });
+    return null;
+  },
+  apply: (tx, c, p) => {
+    if (p.status === 'arrived') {
+      arriveAtEr(tx, c);
+    } else {
+      const n = tx.s.arrivalNotices[c.noticeId];
+      tx.update(n, { status: 'en_route' });
+      tx.timeline(n, 'en_route', msg('tl.enRoute'));
+      if (c.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[c.ambulanceAssignmentId], { status: 'en_route' });
+    }
+    return { summary: msg('audit.crewStatus', { ref: c.ref, status: NOTICE_STATUS_MSG[p.status] }) };
+  },
+  effects: (tx, c, p) => {
+    if (p.status === 'arrived') afterErArrival(tx, c);
+    else tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'eta_changed', msg('notifMsg.crewEnRoute', { ref: c.ref }), { entity: 'case', id: c.id });
   },
 });

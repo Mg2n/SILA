@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" dir="ltr">
-<!-- Built by build.js from src/index.html on 2026-11-02T15:57:46.737Z — do not edit; edit src/ and rebuild. -->
+<!-- Built by build.js from src/index.html on 2026-11-02T16:42:14.079Z — do not edit; edit src/ and rebuild. -->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -322,6 +322,7 @@ blockquote.transcript { margin: 0 0 10px; padding: 12px; border-inline-start: 4p
 .city-map .marker text { font-size: 7.5px; font-weight: 700; fill: var(--navy-900); }
 .city-map .marker.selected circle { fill: var(--teal-600); stroke: var(--navy-900); stroke-width: 2.5; }
 .city-map .marker.selected .cross { stroke: #ffffff; }
+.city-map .marker circle.hit { fill: transparent; stroke: none; }
 .city-map .marker:focus { outline: none; }
 .city-map .marker:focus-visible circle { stroke: var(--focus); stroke-width: 4; }
 
@@ -361,6 +362,98 @@ blockquote.transcript { margin: 0 0 10px; padding: 12px; border-inline-start: 4p
 }
 .canceled-card { opacity: 0.85; border-style: dashed; }
 .entry-card .chip { align-self: flex-start; }
+
+/* =========================================================================
+   Ambulance crew screens — mobile-first (360px), one-handed: every control ≥ 44px
+   ========================================================================= */
+body.crew main { gap: 14px; padding-block-end: 96px; }
+body.crew .btn, body.crew .btn.small, body.crew .icon-btn { min-block-size: 44px; min-inline-size: 44px; }
+body.crew input[type="time"], body.crew input[type="number"], body.crew select { min-block-size: 44px; }
+body.crew .crew-actions .action, body.crew .crew-actions .btn, body.crew .step-actions .btn { inline-size: 100%; }
+body.crew .switcher { display: flex; flex-direction: column; gap: 2px; inline-size: 100%; }
+body.crew .switcher label { font-size: 12px; color: #c9d7e6; }
+body.crew .switcher select { inline-size: 100%; max-inline-size: 100%; }
+.btn.danger-outline { color: var(--red-700); border-color: #e4b4b0; background: var(--surface); }
+.unit-card { display: flex; gap: 12px; align-items: center; }
+.unit-card .illus-ambulance { inline-size: 64px; block-size: auto; flex: none; }
+.crew-section { display: flex; flex-direction: column; gap: 12px; scroll-margin-block-start: 12px; }
+.crew-section:focus { outline: none; }
+.crew-actions { display: flex; flex-direction: column; gap: 10px; }
+.sticky-actions { position: sticky; inset-block-end: 0; z-index: 5; display: flex; gap: 10px; padding-block: 10px; padding-inline: 0;
+  background: linear-gradient(to bottom, rgb(244 247 250 / 0%), var(--bg) 30%); }
+.sticky-actions > * { flex: 1 1 0; }
+.with-unit { display: flex; align-items: center; gap: 8px; }
+.with-unit input { flex: 1; min-inline-size: 0; }
+.with-unit .unit { font-weight: 700; color: var(--muted); min-inline-size: 3ch; }
+.vital-entry { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius-sm); background: var(--teal-50); border: 1px solid #b9dfdb; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.table-wrap { overflow-x: auto; max-inline-size: 100%; }
+table.vitals, table.data { inline-size: 100%; border-collapse: collapse; font-size: 14px; }
+table.vitals th, table.vitals td, table.data th, table.data td { text-align: start; padding-block: 6px; padding-inline: 6px; border-block-end: 1px solid #edf1f5; vertical-align: middle; }
+table.vitals thead th, table.data thead th { font-size: 12px; color: var(--muted); font-weight: 700; }
+table.vitals td.num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+table.vitals td:last-child { white-space: nowrap; }
+table.vitals td .pill + .btn { margin-inline-start: 6px; }
+/* Phones: each reading becomes a two-line row (measurement + value; time + who), so the table never scrolls sideways. */
+@media (max-width: 520px) {
+  table.vitals thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+  table.vitals, table.vitals tbody { display: block; }
+  table.vitals tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 2px; padding-block: 8px; border-block-end: 1px solid #edf1f5; }
+  table.vitals th, table.vitals td { border: 0; padding: 0; }
+  table.vitals td:nth-child(3), table.vitals td:nth-child(4) { font-size: 12px; color: var(--muted); }
+  table.vitals td:nth-child(4) { text-align: end; }
+  table.vitals td:nth-child(5) { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+}
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border: 0; padding: 0; margin: 0; }
+.seg-option { display: flex; align-items: center; gap: 8px; min-block-size: 48px; padding-inline: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong);
+  background: var(--surface); font-weight: 600; cursor: pointer; }
+.seg-option input { inline-size: 22px; block-size: 22px; margin: 0; }
+.seg-option.on { border-color: var(--teal-600); box-shadow: inset 0 0 0 2px var(--teal-600); background: var(--teal-50); }
+.seg-option:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.chip-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-toggle { display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; padding-inline: 14px; border-radius: 999px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); font-weight: 600; cursor: pointer; }
+.chip-toggle.on { background: var(--teal-600); border-color: var(--teal-600); color: #ffffff; }
+.chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+body.crew .confirm-row input { inline-size: 26px; block-size: 26px; }
+.suggestions { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius-sm); border: 1px dashed var(--border-strong); }
+.suggestion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.suggestion .grow { flex: 1 1 180px; }
+.thread { gap: 12px; padding: 0; margin: 0; list-style: none; }
+.thread-item { display: flex; flex-direction: column; gap: 6px; padding-block-end: 10px; border-block-end: 1px solid #edf1f5; }
+.thread-item .question { font-weight: 600; }
+.thread-item .answer { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--green-50); }
+.reply { display: flex; flex-direction: column; gap: 8px; }
+
+/* Simulated route strip: the marker sits at --p (0–1) and, while en route, drives to the end over --dur seconds. */
+.route-strip { margin-block: 12px 0; margin-inline: 0; display: flex; flex-direction: column; gap: 6px; }
+.route-strip .track { position: relative; block-size: 44px; }
+.route-strip .road { position: absolute; inset-inline: 0 18px; inset-block-end: 6px; border-block-end: 3px dashed var(--border-strong); }
+.route-strip .end { position: absolute; inset-inline-end: 0; inset-block-end: 0; color: var(--red-700); }
+.route-strip .amb { position: absolute; inset-block-end: 6px; inset-inline-start: calc((100% - 66px) * var(--p)); line-height: 0; }
+.route-strip .amb.moving { animation: drive var(--dur) linear forwards; }
+@keyframes drive { from { inset-inline-start: calc((100% - 66px) * var(--p)); } to { inset-inline-start: calc(100% - 66px); } }
+[dir="rtl"] .route-strip .amb svg { transform: scaleX(-1); }
+@media (prefers-reduced-motion: reduce) { .route-strip .amb.moving { animation: none; } }
+
+/* Shared handover card (ER drawer and crew preview) */
+.handover-card { display: flex; flex-direction: column; gap: 12px; }
+.ho-banner { margin: 0; }
+.ho-section { display: flex; flex-direction: column; gap: 6px; padding-block-start: 10px; border-block-start: 1px solid #edf1f5; }
+.ho-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ho-head h4 { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.pill.updated { background: #e8f0fb; color: #174ea6; border-color: #b6cdf0; }
+.changes { display: flex; flex-direction: column; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.changes > li { padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.changes > li.new { border-color: #b6cdf0; background: #f3f8fd; }
+.changes ul { list-style: disc; padding-inline-start: 18px; margin-block-start: 4px; }
+
+/* Admin (read-only) */
+.filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; align-items: end; margin-block-end: 10px; }
+.filters input[type="datetime-local"] { padding-block: 6px; padding-inline: 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
+.audit-list { display: flex; flex-direction: column; padding: 0; margin: 0; list-style: none; }
+.audit-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding-block: 8px; border-block-end: 1px solid #edf1f5; }
+.audit-row time { color: var(--muted); font-size: 12px; }
 
 </style>
 </head>
@@ -1554,10 +1647,6 @@ const en5 = {
   'welcome.ambulanceBody': 'Send a structured handover and ETA to the receiving ER.',
   'welcome.staffTitle': 'Hospital staff',
   'welcome.staffBody': 'ER and ICU boards, bed readiness, queues and transfers.',
-  'welcome.comingNext': 'Coming next',
-  'ambulance.placeholderTitle': 'Ambulance crew screens are coming next',
-  'ambulance.placeholderBody': 'The structured handover for crews is part of a later build. The hospital boards already show three seeded ambulance cases.',
-  'ambulance.back': 'Back to start',
   'emergency.title': 'Emergency? Call {number}',
   'emergency.body': 'Call from your phone. SILA never calls for help and does not replace emergency services.',
   'emergency.region': 'Emergency services — {region}',
@@ -1713,7 +1802,291 @@ const en5 = {
   'done.respondClarification': 'Answer sent.',
 };
 
-const TABLES = { en: { ...en, ...en2, ...en3, ...engineEn, ...en4, ...en5 } };
+// Task 5: ambulance crew journey, ER handover view, admin page (engine codes first, then UI).
+const en6 = {
+  'perm.crewOnly': 'Only the ambulance crew assigned to this case can do this.',
+  'perm.adminOnly': 'Only an administrator can view the audit log.',
+  'err.crewAcuity': 'Choose a crew-reported acuity: critical, high, moderate or low.',
+  'err.sex': 'Choose female, male or not stated.',
+  'err.approxAge': 'Enter the approximate age as a whole number from 0 to 120.',
+  'err.vitalType': 'Choose a vital-sign type.',
+  'err.vitalTime': 'Enter the time the {type} reading was taken.',
+  'err.vitalFuture': 'The {type} reading time is in the future.',
+  'err.vitalBpFormat': 'Enter blood pressure as two whole numbers (systolic and diastolic).',
+  'err.vitalBpRange': 'That blood pressure is not physically possible (systolic {min}–{max} mmHg, diastolic lower than systolic). Check the numbers.',
+  'err.vitalNumber': 'Enter {type} as a number.',
+  'err.vitalInteger': 'Enter {type} as a whole number.',
+  'err.vitalRange': '{type} {value} is outside the physically possible range ({min}–{max} {unit}). Check the number.',
+  'vital.HR': 'Heart rate',
+  'vital.BP': 'Blood pressure',
+  'vital.RR': 'Respiratory rate',
+  'vital.SpO2': 'SpO₂',
+  'vital.Temp': 'Temperature',
+  'vital.GCS': 'GCS',
+  'vital.glucose': 'Blood glucose',
+  'tl.revisionChanges': 'Revision {n} sent — changes: {count}',
+  'tl.enRoute': 'Ambulance en route',
+  'audit.handoverUpdated': 'Handover updated for {ref} (revision {n}, changes: {count})',
+  'audit.crewStatus': 'Crew marked {ref} {status}',
+  'notifMsg.handoverUpdatedFields': 'Handover updated for {ref} — changes: {count}',
+  'notifMsg.crewEnRoute': '{ref}: ambulance en route',
+  'err.crewCannotAcknowledge': 'Only the receiving ER can acknowledge a handover.',
+  'err.crewCannotCompleteHandover': 'Handover is completed by the receiving ER team.',
+  'err.crewStatusUnknown': 'Choose en route or arrived.',
+  'err.crewStatusTransition': 'The case is {from}; it cannot move to {to} yet.',
+  'noticeLower.submitted': 'sent',
+  'noticeLower.acknowledged': 'acknowledged',
+  'noticeLower.en_route': 'en route',
+  'noticeLower.arrived': 'arrived',
+  'noticeLower.handover_complete': 'handover complete',
+  'noticeLower.canceled': 'canceled',
+  'noticeLower.closed': 'closed',
+
+  // Crew UI
+  'nav.crew': 'Crew home',
+  'switcher.crewGroup': 'Ambulance crew',
+  'crew.signInTitle': 'Choose your ambulance unit',
+  'crew.signInBody': 'Simulated sign-in for the demo: pick a crew member. A crew only sees cases assigned to its own unit.',
+  'crew.unit': 'Unit {id}',
+  'crew.crewNames': 'Crew: {names}',
+  'crew.signedInAs': 'Signed in as {name}',
+  'crew.switchUnit': 'Switch unit',
+  'crew.currentStatus': 'Current case',
+  'crew.noActive': 'No active case',
+  'crew.cases': 'Assigned cases',
+  'crew.noCases': 'No cases assigned to this unit yet.',
+  'crew.newCase': 'New case',
+  'crew.resumeDraft': 'Continue draft',
+  'crew.discardDraft': 'Discard draft',
+  'crew.draftSaved': 'Draft saved on this device {time}',
+  'crew.notifications': 'Messages from hospitals',
+  'crew.noNotifications': 'No messages yet.',
+  'crew.formNew': 'New handover',
+  'crew.formEdit': 'Update handover {ref}',
+  'crew.section.patient': 'Patient',
+  'crew.section.concern': 'Chief concern',
+  'crew.section.history': 'History and allergies',
+  'crew.section.vitals': 'Vital signs',
+  'crew.section.acuity': 'Crew-reported acuity',
+  'crew.section.interventions': 'Interventions performed',
+  'crew.section.requirements': 'Receiving-team requirements',
+  'crew.section.count': 'Number of patients',
+  'crew.section.destination': 'Destination',
+  'crew.section.notes': 'Crew notes (voice or typed)',
+  'crew.age': 'Approximate age',
+  'crew.sex': 'Sex (optional)',
+  'sex.female': 'Female',
+  'sex.male': 'Male',
+  'sex.unknown': 'Not stated',
+  'crew.concern': 'Chief concern',
+  'crew.history': 'Relevant history',
+  'crew.allergies': 'Allergies',
+  'crew.addReading': 'Add reading',
+  'crew.vitalType': 'Measurement',
+  'crew.vitalValue': 'Value',
+  'crew.systolic': 'Systolic',
+  'crew.diastolic': 'Diastolic',
+  'crew.vitalTime': 'Time taken',
+  'crew.noReadings': 'No readings yet.',
+  'crew.removeReading': 'Remove reading {type} {time}',
+  'crew.sentReading': 'Sent',
+  'crew.newReading': 'New',
+  'crew.readingAdded': 'Reading added.',
+  'crew.acuityHint': 'Crew-reported. The receiving team records its own triage.',
+  'acuity.critical': 'Critical',
+  'acuity.high': 'High',
+  'acuity.moderate': 'Moderate',
+  'acuity.low': 'Low',
+  'acuity.none': 'Not given',
+  'crew.interventionsText': 'Other interventions',
+  'crew.interventionsHint': 'Record what was done. SILA never suggests treatment.',
+  'intervention.iv': 'IV access',
+  'intervention.oxygen': 'Oxygen',
+  'intervention.splint': 'Splint',
+  'intervention.collar': 'Cervical collar',
+  'intervention.ecg': '12-lead ECG recorded',
+  'intervention.glucose': 'Blood glucose checked',
+  'req.other': 'Other requirements',
+  'crew.patientCount': 'Number of patients',
+  'crew.eta': 'Minutes to arrival',
+  'crew.etaHint': 'Simulated from distance; adjust if needed.',
+  'crew.location': 'Ambulance location',
+  'crew.preview': 'Preview handover',
+  'crew.notesLabel': 'Crew notes',
+  'crew.suggest': 'Suggest fields from notes',
+  'crew.suggestions': 'Suggestions from your notes (demo extraction). Accept each one you agree with.',
+  'crew.accept': 'Accept',
+  'crew.accepted': 'Accepted',
+  'crew.noSuggestions': 'Nothing to suggest from these notes.',
+  'crew.neverVitals': 'Vital signs are never filled from speech — enter readings in Vital signs.',
+  'crew.previewTitle': 'Handover preview',
+  'crew.previewBanner': 'Crew-reported — not yet verified by receiving team',
+  'crew.erSees': 'This is how the receiving ER will see it. Edit anything before sending.',
+  'crew.send': 'Send handover',
+  'crew.sendUpdate': 'Send update',
+  'crew.edit': 'Edit',
+  'crew.missingConcern': 'Add the chief concern before sending.',
+  'crew.missingDestination': 'Choose a destination before sending.',
+  'crew.caseTitle': 'Case {ref}',
+  'crew.ack': 'ER acknowledgment',
+  'crew.ackBy': 'Acknowledged {time} by {name}',
+  'crew.notAcked': 'Not yet acknowledged',
+  'crew.thread': 'Clarifications',
+  'crew.noThread': 'No questions from the ER.',
+  'crew.markEnRoute': 'Mark en route',
+  'crew.markArrived': 'Arrived at ER',
+  'crew.changeDestination': 'Change destination',
+  'crew.cancel': 'Cancel case',
+  'crew.editResend': 'Edit and send update',
+  'crew.route': 'Route to {hospital}',
+  'crew.backHome': 'Crew home',
+  'crew.reservation': 'A bed is reserved for this patient at {hospital}.',
+  'crewStatus.draft': 'Draft',
+  'crewStatus.submitted': 'Sent',
+  'crewStatus.acknowledged': 'Acknowledged',
+  'crewStatus.en_route': 'En route',
+  'crewStatus.arrived': 'Arrived',
+  'crewStatus.handover_complete': 'Handover complete',
+  'crewStatus.canceled': 'Canceled',
+  'crewStatus.closed': 'Closed',
+  'dest.title': 'Change destination — {ref}',
+  'dest.hospital': 'New destination',
+  'dest.reason': 'Reason for the change',
+  'dest.notifyOld': '{hospital} will be notified that this patient is no longer coming, and any bed held there is released.',
+  'done.updateCrewStatus': 'Status updated.',
+  'done.changeDestination': 'Destination changed.',
+
+  // ER handover view
+  'incoming.handoverUpdated': 'Handover updated',
+  'incoming.unit': 'Unit {id}',
+  'drawer.whatChanged': 'What changed (revision {n}, {time})',
+  'drawer.noChanges': 'No changes recorded.',
+  'drawer.crewNotes': 'Crew notes',
+  'drawer.requirements': 'Receiving-team requirements',
+  'vitals.type': 'Measurement',
+  'vitals.value': 'Value',
+  'vitals.time': 'Time',
+  'vitals.by': 'Entered by',
+  'change.vitals': 'New {type} reading: {value} {unit} at {time}',
+  'change.field': '{field} changed',
+  'change.reqOn': '{field} now required',
+  'change.reqOff': '{field} no longer required',
+  'change.acuity': 'Crew-reported acuity now {level}',
+  'change.eta': 'ETA now {time}',
+  'changeField.patient.approxAge': 'Approximate age',
+  'changeField.patient.sex': 'Sex',
+  'changeField.reported.ageText': 'Age',
+  'changeField.reported.concern': 'Chief concern',
+  'changeField.reported.patientCount': 'Number of patients',
+  'changeField.handover.history': 'History',
+  'changeField.handover.allergies': 'Allergies',
+  'changeField.handover.receivingRequirements': 'Other requirements',
+  'changeField.handover.crewNotes': 'Crew notes',
+  'changeField.handover.interventions': 'Interventions',
+  'changeField.crewAcuity': 'Crew-reported acuity',
+  'changeField.etaAt': 'ETA',
+  'changeField.transcript': 'Transcript',
+  'changeField.requirements.isolation': 'Isolation',
+  'changeField.requirements.ventilator': 'Ventilator',
+  'changeField.requirements.monitor': 'Monitoring',
+  'changeField.other': 'Details',
+  'action.handoverComplete': 'Handover complete',
+  'action.markArrived': 'Mark arrived',
+
+  // Admin
+  'nav.admin': 'Admin',
+  'admin.title': 'Administration (read-only demo)',
+  'admin.backendNote': 'Real user and role management needs a secure backend with authentication, authorisation and an append-only audit store. This demo page is read-only, and administrators cannot perform clinical actions.',
+  'admin.users': 'Users and roles',
+  'admin.audit': 'Audit log',
+  'admin.filterUser': 'User',
+  'admin.filterRecord': 'Record (reference or id)',
+  'admin.filterAction': 'Action',
+  'admin.filterFrom': 'From',
+  'admin.filterTo': 'To',
+  'admin.any': 'Any',
+  'admin.clear': 'Clear filters',
+  'admin.colName': 'Name',
+  'admin.colRole': 'Role',
+  'admin.colHospital': 'Hospital',
+  'admin.colDept': 'Department / unit',
+  'admin.entries': 'Entries: {n}',
+  'admin.noEntries': 'No audit entries match these filters.',
+  'admin.by': '{name} · {role}',
+  'admin.changes': 'Changed: {list}',
+  'admin.reason': 'Reason: {text}',
+  'crew.signInAs': 'Sign in as {name}',
+  'crew.sent': 'Handover sent to the receiving ER.',
+  'crew.updateSent': 'Update sent — the ER sees what changed.',
+  'crew.discardTitle': 'Discard this draft?',
+  'crew.discardBody': 'Everything typed in this draft on this device will be removed. Nothing has been sent.',
+  'crew.cannotEdit': '{ref} can no longer be updated here — the patient has arrived or the case is closed.',
+  'crew.draftLocal': 'Draft is saved on this device as you type.',
+  'crew.ageHint': 'Whole number, e.g. 64.',
+  'crew.notFoundTitle': 'Case not available',
+  'crew.notesHint': 'Speak or type. The text is kept as crew notes; vital signs are entered separately.',
+  'crew.readings': 'Readings',
+  'crew.readingState': 'Sent or new',
+  'crew.destinationFixed': 'To change the destination, use Change destination on the case page (a reason is required).',
+  'crew.locationHint': 'Simulated position used for distance only.',
+  'crew.minutesUnit': 'min',
+  'crew.previewUpdate': 'Preview update to {ref}',
+  'crew.resumeUpdate': 'Continue update draft',
+  'crew.yourReply': 'Crew reply',
+  'crew.replyLabel': 'Your reply',
+  'crew.unitLabel': 'Unit',
+  'crew.sexShort': 'Sex',
+  'crew.formEditTitle': 'Update handover',
+  'crew.ambulanceHere': 'Ambulance',
+  'crew.notFound': 'This case is not assigned to your unit, or it no longer exists.',
+  'auditAction.seed': 'Seed demo data',
+  'crew.caseTitleShort': 'Crew case',
+  'dest.choose': 'Choose a hospital',
+  'admin.noHospital': 'No hospital (crew or public)',
+  'switcher.chooseCrew': 'Choose a crew member…',
+  'drawer.whatChangedTitle': 'What changed',
+  'auditAction.submitArrival': 'Send or update arrival notice',
+  'auditAction.acknowledgeArrival': 'Acknowledge arrival notice',
+  'auditAction.updateETA': 'Update ETA',
+  'auditAction.requestClarification': 'Request clarification',
+  'auditAction.respondClarification': 'Answer clarification',
+  'auditAction.changeDestination': 'Change destination',
+  'auditAction.cancelCase': 'Cancel case',
+  'auditAction.recordTriage': 'Record triage',
+  'auditAction.confirmArrival': 'Confirm arrival',
+  'auditAction.reserveBed': 'Reserve bed',
+  'auditAction.extendReservation': 'Extend reservation',
+  'auditAction.releaseReservation': 'Release reservation',
+  'auditAction.confirmPlacement': 'Confirm placement',
+  'auditAction.reportFault': 'Report fault',
+  'auditAction.updateTicketStatus': 'Update ticket status',
+  'auditAction.resolveFault': 'Resolve fault',
+  'auditAction.reopenTicket': 'Reopen ticket',
+  'auditAction.completeCleaning': 'Complete cleaning',
+  'auditAction.verifyReadiness': 'Verify bed readiness',
+  'auditAction.confirmStaffing': 'Confirm staffing',
+  'auditAction.recordEquipmentCheck': 'Record equipment check',
+  'auditAction.requestTransfer': 'Request ICU transfer',
+  'auditAction.approveTransfer': 'Accept ICU transfer',
+  'auditAction.confirmCapacity': 'Confirm ICU capacity',
+  'auditAction.cancelTransferRequest': 'Cancel transfer request',
+  'auditAction.assignPorter': 'Assign porter',
+  'auditAction.confirmDeparture': 'Confirm departure',
+  'auditAction.confirmPickup': 'Confirm pickup',
+  'auditAction.confirmDropoff': 'Confirm drop-off',
+  'auditAction.flagStepDown': 'Flag step-down',
+  'auditAction.recordDisposition': 'Record disposition',
+  'auditAction.updateTaskStatus': 'Update task status',
+  'auditAction.orderDiagnostic': 'Order diagnostic',
+  'auditAction.acknowledgeReport': 'Acknowledge report',
+  'auditAction.markNotificationRead': 'Mark notification read',
+  'auditAction.addComment': 'Add comment',
+  'auditAction.reportStaffingGap': 'Report staffing gap',
+  'auditAction.assignCoordinator': 'Assign coordinator',
+  'auditAction.updateCrewStatus': 'Update crew status',
+};
+
+const TABLES = { en: { ...en, ...en2, ...en3, ...engineEn, ...en4, ...en5, ...en6 } };
 const LOCALES = { en: { label: 'English', dir: 'ltr', intl: 'en-GB' } };
 let locale = 'en';
 
@@ -1753,6 +2126,10 @@ function formatTime(iso) {
   return iso ? new Intl.DateTimeFormat(intl(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso)) : t('common.unknown');
 }
 
+function formatDateTime(iso) {
+  return iso ? new Intl.DateTimeFormat(intl(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso)) : t('common.unknown');
+}
+
 function formatRelative(iso, now) {
   const diff = Math.round((Date.parse(iso) - Date.parse(now)) / 60000);
   const abs = Math.abs(diff);
@@ -1766,7 +2143,7 @@ function formatDuration(fromIso, now) {
   return mins < 60 ? t('time.dur', { n: mins }) : t('time.durH', { h: Math.floor(mins / 60), m: mins % 60 });
 }
 
-return { LOCALES, setLocale, getLocale, dir, hasKey, allKeys, t, tm, formatTime, formatRelative, formatDuration };
+return { LOCALES, setLocale, getLocale, dir, hasKey, allKeys, t, tm, formatTime, formatDateTime, formatRelative, formatDuration };
 })();
 
 // ---- ui/dom.js ----
@@ -1864,9 +2241,13 @@ const BLOCKER_TYPE_MSG = {
 const SOURCE_MSG = { ambulance: msg('source.ambulance'), citizen: msg('source.citizen'), walk_in: msg('source.walk_in'), internal: msg('source.internal') };
 const WHY_MSG = { discharge: msg('why.discharge'), admit_ward: msg('why.admit_ward'), step_down: msg('why.step_down') };
 const DECISION_MSG = { discharge: msg('decision.discharge'), admit_ward: msg('decision.admit_ward') };
+const NOTICE_STATUS_MSG = {
+  submitted: msg('noticeLower.submitted'), acknowledged: msg('noticeLower.acknowledged'), en_route: msg('noticeLower.en_route'), arrived: msg('noticeLower.arrived'),
+  handover_complete: msg('noticeLower.handover_complete'), canceled: msg('noticeLower.canceled'), closed: msg('noticeLower.closed'),
+};
 const NO_TEXT = msg('common.empty');
 
-return { msg, isMsg, iso, DEPT_MSG, ROLE_MSG, CASE_STATUS_MSG, TRANSFER_STATUS_MSG, TASK_STATUS_MSG, TICKET_STATUS_MSG, RESERVATION_STATE_MSG, EQUIP_MSG, DIAG_MSG, SEVERITY_MSG, BLOCKER_TYPE_MSG, SOURCE_MSG, WHY_MSG, DECISION_MSG, NO_TEXT };
+return { msg, isMsg, iso, DEPT_MSG, ROLE_MSG, CASE_STATUS_MSG, TRANSFER_STATUS_MSG, TASK_STATUS_MSG, TICKET_STATUS_MSG, RESERVATION_STATE_MSG, EQUIP_MSG, DIAG_MSG, SEVERITY_MSG, BLOCKER_TYPE_MSG, SOURCE_MSG, WHY_MSG, DECISION_MSG, NOTICE_STATUS_MSG, NO_TEXT };
 })();
 
 // ---- data.js ----
@@ -1877,7 +2258,7 @@ __sila_modules["data.js"] = (() => {
 
 const { msg } = __sila_modules["messages.js"];
 
-const SCHEMA_VERSION = 2; // 2: message codes + capacity confirmation
+const SCHEMA_VERSION = 3; // 2: message codes + capacity confirmation; 3: ambulance units + structured vitals
 const PRIMARY_HOSPITAL_ID = 'h-wadi-noor';
 
 const COLLECTIONS = [
@@ -2025,9 +2406,11 @@ function seed(now = new Date()) {
   user('u-porter', 'Samir Aziz', 'porter', H, null);
   user('u-admin', 'Ravi Menon', 'admin', H, null);
   user('u-rimal-coord', 'Yara Khoury', 'er_coordinator', 'h-rimal', 'ER');
-  user('u-para-1', 'Tariq Saeed', 'paramedic', null, null, { ambulanceId: 'AMB-12', organization: 'Regional Ambulance Service (demo)' });
-  user('u-para-2', 'Lina Farouk', 'paramedic', null, null, { ambulanceId: 'AMB-07', organization: 'Regional Ambulance Service (demo)' });
-  user('u-para-3', 'Jamal Idris', 'paramedic', null, null, { ambulanceId: 'AMB-21', organization: 'Regional Ambulance Service (demo)' });
+  // Two ambulance units, each with a named crew. A crew sees only cases assigned to its unit.
+  user('u-para-1', 'Tariq Saeed', 'paramedic', null, null, { ambulanceId: 'WN-A12', organization: 'Regional Ambulance Service (demo)' });
+  user('u-para-4', 'Hamad Al-Otaibi', 'paramedic', null, null, { ambulanceId: 'WN-A12', organization: 'Regional Ambulance Service (demo)' });
+  user('u-para-2', 'Lina Farouk', 'paramedic', null, null, { ambulanceId: 'WN-A07', organization: 'Regional Ambulance Service (demo)' });
+  user('u-para-3', 'Jamal Idris', 'paramedic', null, null, { ambulanceId: 'WN-A07', organization: 'Regional Ambulance Service (demo)' });
   user('u-citizen-1', 'Demo caller — Hessa', 'citizen', null, null);
   user('u-citizen-2', 'Demo caller — Yousef', 'citizen', null, null);
   // No-login citizen sessions act through this shared account; each device owns only the cases it submitted (deviceRef).
@@ -2111,7 +2494,7 @@ function seed(now = new Date()) {
     put('case', { ...baseCase, id: cid, ref, patientId: pid, source, destinationHospitalId: H, department: 'ER', journey: 'expected',
       noticeId: nid, submittedBy, reportedConcern: notice.reported.concern, createdAt: notice.submittedAt,
       destinationHistory: [{ hospitalId: H, at: notice.submittedAt, by: submittedBy, reason: 'Initial destination' }], ...extra });
-    put('arrivalNotice', { id: nid, caseId: cid, source, submittedBy, clientRef: `seed-${key}`, revision: 1, clinicallyVerified: false,
+    put('arrivalNotice', { id: nid, caseId: cid, source, submittedBy, clientRef: `seed-${key}`, revision: 1, clinicallyVerified: false, updates: [],
       acknowledged: null, handover: null, transcript: null, extractionMethod: source === 'citizen' ? 'demo-rule-based' : 'crew-entered',
       timeline: [{ at: notice.submittedAt, by: submittedBy, event: 'submitted', detail: msg('tl.sent', { hospital: s.hospitals[H].shortName }) }],
       createdAt: notice.submittedAt, ...notice });
@@ -2123,38 +2506,42 @@ function seed(now = new Date()) {
   };
   const reported = (concern, rest = {}) => ({ ageText: null, concern, onset: null, awakeBreathing: 'unknown', conditions: null,
     allergies: null, patientCount: 1, location: null, contact: null, accessibilityNeeds: null, ...rest });
-  const ambulance = (key, ambulanceId, crew, currentLocation, status) =>
-    put('ambulanceAssignment', { id: `amb-${key}`, ambulanceId, crewUserIds: crew, caseId: `case-${key}`, destinationHospitalId: H, status, currentLocation, createdAt: at(-20) });
+  const ambulance = (key, ambulanceId, currentLocation, status) =>
+    put('ambulanceAssignment', { id: `amb-${key}`, ambulanceId, crewUserIds: values(s, 'users').filter((u) => u.ambulanceId === ambulanceId).map((u) => u.id),
+      caseId: `case-${key}`, destinationHospitalId: H, status, currentLocation, createdAt: at(-20) });
+  // Structured readings: { id, type, value, unit, takenAt, enteredBy } — see vitals.js. No interpretation is stored.
+  const vital = (key, n, type, value, unit, min, by) => ({ id: `vs-${key}-${n}`, type, value, unit, takenAt: at(min), enteredBy: by });
+  const handover = (fields) => ({ crewNotes: null, interventions: [], receivingRequirements: null, history: null, allergies: null, ...fields });
 
   incoming('ivy', 'SL-2041', 'Ivy 05', 62, 'ambulance', 'u-para-1', {
     submittedAt: at(-18), status: 'acknowledged', etaAt: at(12), transportMode: 'ambulance',
     acknowledged: { by: 'u-er-coord', at: at(-15) },
     reported: reported('Chest pain radiating to left arm, started ~40 min before crew arrival', { ageText: 'Early 60s', onset: '~40 min before call', awakeBreathing: 'yes', location: 'Al Safa district, Street 14 (simulated)' }),
-    handover: { crewAcuity: { level: 'High', source: 'crew-reported' }, history: 'Hypertension (reported by family)', allergies: 'None known',
-      vitals: [{ name: 'Heart rate', value: '108', unit: 'bpm', at: at(-16) }, { name: 'Blood pressure', value: '152/94', unit: 'mmHg', at: at(-16) },
-        { name: 'SpO₂', value: '95', unit: '%', at: at(-16) }, { name: 'Respiratory rate', value: '20', unit: '/min', at: at(-16) }],
-      interventions: ['12-lead ECG recorded by crew', 'Oxygen via nasal cannula'], receivingRequirements: 'Monitored bed on arrival' },
-  }, { requirements: { isolation: false, ventilator: false }, crewAcuity: { level: 'High', source: 'crew-reported' }, ambulanceAssignmentId: 'amb-ivy' });
-  ambulance('ivy', 'AMB-12', ['u-para-1'], 'Ring Road, exit 7 (simulated)', 'en_route');
+    handover: handover({ crewAcuity: { level: 'high', source: 'crew' }, history: 'Hypertension (reported by family)', allergies: 'None known',
+      vitals: [vital('ivy', 1, 'HR', 108, 'bpm', -16, 'u-para-1'), vital('ivy', 2, 'BP', { systolic: 152, diastolic: 94 }, 'mmHg', -16, 'u-para-1'),
+        vital('ivy', 3, 'SpO2', 95, '%', -16, 'u-para-1'), vital('ivy', 4, 'RR', 20, '/min', -16, 'u-para-1')],
+      interventions: ['12-lead ECG recorded', 'Oxygen'], receivingRequirements: null }),
+  }, { requirements: { isolation: false, ventilator: false, monitor: true }, crewAcuity: { level: 'high', source: 'crew' }, ambulanceAssignmentId: 'amb-ivy' });
+  ambulance('ivy', 'WN-A12', 'Ring Road, exit 7 (simulated)', 'en_route');
 
   incoming('laurel', 'SL-2042', 'Laurel 14', 25, 'ambulance', 'u-para-2', {
     submittedAt: at(-6), status: 'submitted', etaAt: at(25), transportMode: 'ambulance',
     reported: reported('Motorcycle collision, right leg injury, conscious and talking', { ageText: 'Mid 20s', onset: '~20 min ago', awakeBreathing: 'yes', location: 'Coastal highway km 31 (simulated)' }),
-    handover: { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, history: null, allergies: null,
-      vitals: [{ name: 'Heart rate', value: '96', unit: 'bpm', at: at(-7) }, { name: 'Blood pressure', value: '128/80', unit: 'mmHg', at: at(-7) }],
-      interventions: ['Splint applied to right leg'], receivingRequirements: 'Trauma bay; imaging likely' },
-  }, { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, ambulanceAssignmentId: 'amb-laurel' });
-  ambulance('laurel', 'AMB-07', ['u-para-2'], 'Coastal highway km 31 (simulated)', 'en_route');
+    handover: handover({ crewAcuity: { level: 'moderate', source: 'crew' },
+      vitals: [vital('laurel', 1, 'HR', 96, 'bpm', -7, 'u-para-2'), vital('laurel', 2, 'BP', { systolic: 128, diastolic: 80 }, 'mmHg', -7, 'u-para-2')],
+      interventions: ['Splint'], receivingRequirements: 'Trauma bay; imaging likely' }),
+  }, { crewAcuity: { level: 'moderate', source: 'crew' }, ambulanceAssignmentId: 'amb-laurel' });
+  ambulance('laurel', 'WN-A07', 'Coastal highway km 31 (simulated)', 'en_route');
 
   incoming('moss', 'SL-2043', 'Moss 62', 81, 'ambulance', 'u-para-3', {
     submittedAt: at(-14), status: 'en_route', etaAt: at(8), transportMode: 'ambulance',
     acknowledged: { by: 'u-er-coord', at: at(-11) },
     reported: reported('Found on floor at home, confused, unable to stand', { ageText: 'About 80', onset: 'Unknown — found this morning', awakeBreathing: 'yes', location: 'Old town, Lane 3 (simulated)' }),
-    handover: { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, history: 'Lives alone; daughter on the way', allergies: 'Penicillin (reported by daughter)',
-      vitals: [{ name: 'Heart rate', value: '88', unit: 'bpm', at: at(-12) }, { name: 'Temperature', value: '37.9', unit: '°C', at: at(-12) }],
-      interventions: ['Blood glucose checked by crew'], receivingRequirements: 'Falls assessment; family contact pending' },
-  }, { crewAcuity: { level: 'Moderate', source: 'crew-reported' }, ambulanceAssignmentId: 'amb-moss', assignedCoordinatorId: 'u-er-coord' });
-  ambulance('moss', 'AMB-21', ['u-para-3'], 'University bridge (simulated)', 'en_route');
+    handover: handover({ crewAcuity: { level: 'moderate', source: 'crew' }, history: 'Lives alone; daughter on the way', allergies: 'Penicillin (reported by daughter)',
+      vitals: [vital('moss', 1, 'HR', 88, 'bpm', -12, 'u-para-3'), vital('moss', 2, 'Temp', 37.9, '°C', -12, 'u-para-3'), vital('moss', 3, 'glucose', 6.1, 'mmol/L', -12, 'u-para-3')],
+      interventions: ['Blood glucose checked'], receivingRequirements: 'Falls assessment; family contact pending' }),
+  }, { crewAcuity: { level: 'moderate', source: 'crew' }, ambulanceAssignmentId: 'amb-moss', assignedCoordinatorId: 'u-er-coord' });
+  ambulance('moss', 'WN-A07', 'University bridge (simulated)', 'en_route');
 
   incoming('reed', 'SL-2044', 'Reed 38', 70, 'citizen', 'u-citizen-1', {
     submittedAt: at(-4), status: 'submitted', etaAt: at(15), transportMode: 'private_car',
@@ -2462,6 +2849,13 @@ const RULES = {
     return mine ? null : msg('perm.notificationRecipient');
   },
 
+  updateCrewStatus: all(roleIs(['paramedic'], msg('perm.crewOnly')), (u, r) => (ownsCase(u, r) ? null : msg('perm.crewOnly'))),
+
+  // Read capability: an ambulance crew sees only the cases assigned to its unit.
+  viewCrewCase: all(roleIs(['paramedic'], msg('perm.crewOnly')), (u, r) => (ownsCase(u, r) ? null : msg('perm.crewOnly'))),
+  // Read capability: the audit log is for administrators (read-only in this demo).
+  viewAuditLog: roleIs(['admin'], msg('perm.adminOnly')),
+
   // Read capability: a citizen session sees only the notices sent from its own device.
   viewCitizenCase: all(roleIs(['citizen', 'paramedic'], msg('perm.ownCaseOnly')), (u, r) => (ownsCase(u, r) ? null : msg('perm.ownCaseOnly'))),
 
@@ -2479,6 +2873,68 @@ function can(user, action, record = {}) {
 }
 
 return { ownsCase, RULES, can };
+})();
+
+// ---- vitals.js ----
+__sila_modules["vitals.js"] = (() => {
+// SILA — structured vital-sign readings entered by an ambulance crew.
+// A reading is { id, type, value, unit, takenAt, enteredBy }. Validation checks format and PHYSICALLY POSSIBLE
+// ranges only (e.g. SpO2 cannot exceed 100 %). Nothing here interprets, flags as abnormal, or scores a value.
+
+const { msg } = __sila_modules["messages.js"];
+
+// Physically possible limits — deliberately wide; they reject typing errors, not clinical findings.
+const VITAL_TYPES = {
+  HR: { unit: 'bpm', min: 0, max: 350, integer: true },
+  BP: { unit: 'mmHg', systolic: [0, 350], diastolic: [0, 250] },
+  RR: { unit: '/min', min: 0, max: 100, integer: true },
+  SpO2: { unit: '%', min: 0, max: 100, integer: true },
+  Temp: { unit: '°C', min: 20, max: 46, decimals: 1 },
+  GCS: { unit: '', min: 3, max: 15, integer: true },
+  glucose: { unit: 'mmol/L', min: 0.1, max: 80, decimals: 1 },
+};
+const VITAL_TYPE_KEYS = Object.keys(VITAL_TYPES);
+const TYPE_MSG = { HR: msg('vital.HR'), BP: msg('vital.BP'), RR: msg('vital.RR'), SpO2: msg('vital.SpO2'), Temp: msg('vital.Temp'), GCS: msg('vital.GCS'), glucose: msg('vital.glucose') };
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const toNum = (v) => (typeof v === 'string' && v.trim() !== '' ? Number(v.replace(',', '.')) : v);
+
+/** Returns null when the reading is well-formed and physically possible, else a message. */
+function vitalProblem(r, now = new Date().toISOString()) {
+  const def = VITAL_TYPES[r?.type];
+  if (!def) return msg('err.vitalType');
+  if (!r.takenAt || Number.isNaN(Date.parse(r.takenAt))) return msg('err.vitalTime', { type: TYPE_MSG[r.type] });
+  if (Date.parse(r.takenAt) > Date.parse(now) + 5 * 60000) return msg('err.vitalFuture', { type: TYPE_MSG[r.type] });
+  if (r.type === 'BP') {
+    const s = toNum(r.value?.systolic);
+    const d = toNum(r.value?.diastolic);
+    if (!isNum(s) || !isNum(d) || !Number.isInteger(s) || !Number.isInteger(d)) return msg('err.vitalBpFormat');
+    if (s < def.systolic[0] || s > def.systolic[1] || d < def.diastolic[0] || d > def.diastolic[1] || d >= s) {
+      return msg('err.vitalBpRange', { min: def.systolic[0], max: def.systolic[1] });
+    }
+    return null;
+  }
+  const v = toNum(r.value);
+  if (!isNum(v)) return msg('err.vitalNumber', { type: TYPE_MSG[r.type] });
+  if (def.integer && !Number.isInteger(v)) return msg('err.vitalInteger', { type: TYPE_MSG[r.type] });
+  if (v < def.min || v > def.max) return msg('err.vitalRange', { type: TYPE_MSG[r.type], value: v, min: def.min, max: def.max, unit: def.unit });
+  return null;
+}
+
+/** The stored shape: exactly these keys. Id, unit and enteredBy come from the engine (never from input); no interpretation. */
+function normalizeReading(r, enteredBy, id) {
+  const def = VITAL_TYPES[r.type];
+  const value = r.type === 'BP'
+    ? { systolic: toNum(r.value.systolic), diastolic: toNum(r.value.diastolic) }
+    : (def.decimals ? Math.round(toNum(r.value) * 10) / 10 : toNum(r.value));
+  return { id, type: r.type, value, unit: def.unit, takenAt: new Date(r.takenAt).toISOString(), enteredBy };
+}
+
+function formatVitalValue(r) {
+  return r.type === 'BP' ? `${r.value.systolic}/${r.value.diastolic}` : String(r.value);
+}
+
+return { VITAL_TYPES, VITAL_TYPE_KEYS, vitalProblem, normalizeReading, formatVitalValue };
 })();
 
 // ---- readiness.js ----
@@ -2779,8 +3235,9 @@ __sila_modules["actions.js"] = (() => {
 // Every user-facing text (errors, reasons, titles, notifications, audit summaries) is a message { code, params }.
 
 const { COLLECTION_OF, SLA_MINUTES, RESERVATION_MINUTES, ACTIVE_TRANSFER_STATUS, DIAGNOSTIC_TYPES, addMinutes, nextId, nextRef, values, isOpenTask, isOpenTicket, checkInvariants } = __sila_modules["data.js"];
-const { msg, iso, DEPT_MSG, ROLE_MSG, CASE_STATUS_MSG, TRANSFER_STATUS_MSG, TASK_STATUS_MSG, TICKET_STATUS_MSG, RESERVATION_STATE_MSG, EQUIP_MSG, DIAG_MSG, SEVERITY_MSG, BLOCKER_TYPE_MSG, SOURCE_MSG, WHY_MSG, DECISION_MSG, NO_TEXT } = __sila_modules["messages.js"];
+const { msg, iso, DEPT_MSG, ROLE_MSG, CASE_STATUS_MSG, TRANSFER_STATUS_MSG, TASK_STATUS_MSG, TICKET_STATUS_MSG, RESERVATION_STATE_MSG, EQUIP_MSG, DIAG_MSG, SEVERITY_MSG, BLOCKER_TYPE_MSG, SOURCE_MSG, WHY_MSG, DECISION_MSG, NOTICE_STATUS_MSG, NO_TEXT } = __sila_modules["messages.js"];
 const { can } = __sila_modules["permissions.js"];
+const { vitalProblem, normalizeReading } = __sila_modules["vitals.js"];
 const { deriveBedReadiness, reservationState, activeReservationForBed, activeReservationForCase, openTasksFor, openTicketsForBed, latestEquipmentCheck, isCheckValid, confirmedStaffing, activeTransferForCase, PHYSICAL_BLOCKERS, compatibilityError, icuBedProblem, suggestedBeds, suggestedBedFor } = __sila_modules["readiness.js"];
 
 const ACTIONS = {};
@@ -2945,7 +3402,7 @@ function applyAction(state, actionName, payload, user, now = new Date().toISOStr
   // (e) audit — who / what / when / reason.
   const audit = tx.create('auditEvent', {
     at: now, actorId: actor.id, actorName: actor.name, actorRole: actor.role, action: actionName,
-    summary: ctx.summary ?? msg('audit.generic', { action: actionName }), reason: ctx.reason ?? p.reason ?? null,
+    summary: ctx.summary ?? msg('audit.generic', { action: actionName }), reason: ctx.reason ?? p.reason ?? null, details: ctx.details ?? null,
     refs: ctx.refs ?? (live ? [{ entity: live.entity, id: live.id }] : []), changed: [],
   }, 'audit');
   delete audit.version; // audit events are immutable and unversioned
@@ -2995,8 +3452,14 @@ const find = (state, entity, id) => {
   return rec ? { rec } : { missing: NOT_FOUND[entity] };
 };
 
-const crewOf = (s, c) => (c.ambulanceAssignmentId ? s.ambulanceAssignments[c.ambulanceAssignmentId]?.crewUserIds ?? [] : []);
-const caseParties = (s, c) => [c.submittedBy, ...crewOf(s, c)].filter(Boolean);
+// The crew of a case is every member of the assigned ambulance unit (plus anyone recorded on the assignment).
+const crewOf = (s, c) => {
+  const a = c.ambulanceAssignmentId ? s.ambulanceAssignments[c.ambulanceAssignmentId] : null;
+  if (!a) return [];
+  const unit = values(s, 'users').filter((u) => u.role === 'paramedic' && u.ambulanceId === a.ambulanceId).map((u) => u.id);
+  return [...new Set([...(a.crewUserIds ?? []), ...unit])];
+};
+const caseParties = (s, c) => [...new Set([c.submittedBy, ...crewOf(s, c)].filter(Boolean))];
 const patientOf = (s, c) => s.patients[c.patientId];
 const currentDept = (s, c) => patientOf(s, c)?.location.department ?? 'ER';
 const caseOfPatient = (s, pid) => values(s, 'cases').find((c) => c.patientId === pid && c.status === 'active') ?? null;
@@ -3144,6 +3607,23 @@ const REPORTED_FIELDS = ['ageText', 'concern', 'onset', 'awake', 'breathing', 'a
 const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 const caseStatusError = (c) => msg('err.caseStatus', { ref: c.ref, status: CASE_STATUS_MSG[c.status] });
 
+const CREW_ACUITY = ['critical', 'high', 'moderate', 'low'];
+const SEXES = ['female', 'male', 'unknown'];
+const HANDOVER_TEXT = ['history', 'allergies', 'receivingRequirements', 'crewNotes'];
+const REQ_KEYS = ['isolation', 'ventilator', 'monitor'];
+const sameJson = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+// Every new reading must be well-formed and physically possible; readings already sent are kept as they were.
+function vitalsError(p, existing, now) {
+  const known = new Set((existing ?? []).map((v) => v.id));
+  for (const r of p.vitals ?? []) {
+    if (r.id && known.has(r.id)) continue;
+    const problem = vitalProblem(r, now);
+    if (problem) return problem;
+  }
+  return null;
+}
+
 action('submitArrival', {
   // Create a new notice, or — when the same device resends (same caseId or clientRef) — update it without duplicating.
   target: (s, p) => {
@@ -3152,61 +3632,94 @@ action('submitArrival', {
     return existing ? { rec: s.cases[existing.caseId] } : null;
   },
   scope: (s, c, p) => (c ? caseScope(s, c, p) : {}),
-  validate: (s, c, p, actor) => {
+  validate: (s, c, p, actor, now) => {
     if (ICU_REQUEST_FIELDS.some((k) => p[k]) || p.requirements?.icu) return msg('err.arrivalNoIcu');
-    if (p.etaAt !== undefined && !validIso(p.etaAt)) return msg('err.etaInvalid');
+    if (p.etaAt !== undefined && p.etaAt !== null && !validIso(p.etaAt)) return msg('err.etaInvalid');
     if (actor.role === 'paramedic' && !actor.ambulanceId) return msg('err.crewNoAmbulance');
     if (actor.shared && !c && !nonEmpty(p.deviceRef)) return msg('err.deviceRequired');
+    if (p.crewAcuity !== undefined && p.crewAcuity !== null && !CREW_ACUITY.includes(p.crewAcuity)) return msg('err.crewAcuity');
+    if (p.sex !== undefined && p.sex !== null && !SEXES.includes(p.sex)) return msg('err.sex');
+    if (p.approxAge !== undefined && p.approxAge !== null && !(Number.isInteger(p.approxAge) && p.approxAge >= 0 && p.approxAge <= 120)) return msg('err.approxAge');
+    if (p.vitals !== undefined && !Array.isArray(p.vitals)) return msg('err.vitalType');
     if (c) {
       if (c.status !== 'active') return msg('err.caseClosedForUpdate', { ref: c.ref, status: CASE_STATUS_MSG[c.status] });
       if (patientOf(s, c).location.kind !== 'pre_hospital') return msg('err.caseArrivedUpdate', { ref: c.ref });
       if (p.destinationHospitalId && p.destinationHospitalId !== c.destinationHospitalId) return msg('err.useChangeDestination');
-      return null;
+      return vitalsError(p, s.arrivalNotices[c.noticeId]?.handover?.vitals, now);
     }
     if (!s.hospitals[p.destinationHospitalId]) return msg('err.chooseDestination');
     if (!nonEmpty(p.concern)) return msg('err.describeConcern');
-    return null;
+    return vitalsError(p, [], now);
   },
   apply: (tx, c, p, actor) => {
     const crew = actor.role === 'paramedic';
-    const handover = crew ? pick(p, ['vitals', 'interventions', 'receivingRequirements', 'history', 'allergies']) : null;
-    if (crew && p.crewAcuity) handover.crewAcuity = { level: p.crewAcuity, source: 'crew-reported' };
+    const newReadings = (existing) => {
+      const known = new Set(existing.map((v) => v.id));
+      return (p.vitals ?? []).filter((r) => !r.id || !known.has(r.id)).map((r) => normalizeReading(r, actor.id, nextId(tx.s, 'vs')));
+    };
 
     if (c) {
       const notice = tx.s.arrivalNotices[c.noticeId];
+      const before = structuredClone({ reported: notice.reported, handover: notice.handover, etaAt: notice.etaAt, requirements: c.requirements, crewAcuity: c.crewAcuity, transcript: notice.transcript });
+      const added = crew ? newReadings(notice.handover?.vitals ?? []) : [];
+      const handover = crew ? {
+        ...notice.handover,
+        ...pick(p, HANDOVER_TEXT),
+        ...(p.interventions ? { interventions: [...p.interventions] } : {}),
+        ...(p.crewAcuity ? { crewAcuity: { level: p.crewAcuity, source: 'crew' } } : {}),
+        vitals: [...(notice.handover?.vitals ?? []), ...added], // readings over time are appended, never overwritten
+      } : notice.handover;
       tx.update(notice, {
         reported: { ...notice.reported, ...pick(p, REPORTED_FIELDS) },
-        handover: crew ? { ...notice.handover, ...handover } : notice.handover,
+        handover,
         transcript: p.transcript ?? notice.transcript,
         etaAt: p.etaAt ?? notice.etaAt,
         revision: notice.revision + 1,
       });
-      tx.timeline(notice, 'updated', msg('tl.revision', { n: notice.revision }));
       if (p.concern) c.reportedConcern = p.concern;
-      if (crew && p.crewAcuity) c.crewAcuity = { level: p.crewAcuity, source: 'crew-reported' };
-      if (crew && p.requirements) c.requirements = { ...c.requirements, ...pick(p.requirements, ['isolation', 'ventilator', 'monitor']) };
-      if (p.approxAge !== undefined) tx.update(patientOf(tx.s, c), { approxAge: p.approxAge });
-      return { summary: msg('audit.noticeUpdated', { ref: c.ref, n: notice.revision }), result: { caseId: c.id, created: false }, noticeId: notice.id, caseRec: c };
+      if (crew && p.crewAcuity) c.crewAcuity = { level: p.crewAcuity, source: 'crew' }; // never touches the staff triage field
+      if (crew && p.requirements) c.requirements = { ...c.requirements, ...pick(p.requirements, REQ_KEYS) };
+      const patient = patientOf(tx.s, c);
+      const beforePatient = { approxAge: patient.approxAge ?? null, sex: patient.sex ?? null };
+      if (p.approxAge !== undefined || p.sex !== undefined) tx.update(patient, { approxAge: p.approxAge ?? patient.approxAge, sex: p.sex ?? patient.sex ?? null });
+
+      // Which fields changed, for the audit entry and the ER's "What changed" list.
+      const changes = [];
+      for (const k of ['approxAge', 'sex']) if (!sameJson(beforePatient[k], patient[k] ?? null)) changes.push({ field: `patient.${k}` });
+      for (const k of Object.keys({ ...before.reported, ...notice.reported })) if (!sameJson(before.reported?.[k], notice.reported[k])) changes.push({ field: `reported.${k}` });
+      for (const k of [...HANDOVER_TEXT, 'interventions']) if (!sameJson(before.handover?.[k], notice.handover?.[k])) changes.push({ field: `handover.${k}` });
+      if (!sameJson(before.crewAcuity, c.crewAcuity)) changes.push({ field: 'crewAcuity', level: c.crewAcuity?.level });
+      for (const k of REQ_KEYS) if (!sameJson(before.requirements?.[k], c.requirements?.[k])) changes.push({ field: `requirements.${k}`, value: !!c.requirements?.[k] });
+      if (!sameJson(before.etaAt, notice.etaAt)) changes.push({ field: 'etaAt', value: notice.etaAt });
+      if (!sameJson(before.transcript, notice.transcript)) changes.push({ field: 'transcript' });
+      for (const v of added) changes.push({ field: 'vitals', readingId: v.id, type: v.type });
+      notice.updates = [...(notice.updates ?? []), { revision: notice.revision, at: tx.now, by: actor.id, changes }];
+      tx.timeline(notice, 'updated', msg('tl.revisionChanges', { n: notice.revision, count: changes.length }));
+      return { summary: msg('audit.handoverUpdated', { ref: c.ref, n: notice.revision, count: changes.length }), details: changes,
+        result: { caseId: c.id, created: false }, noticeId: notice.id, caseRec: c, changes };
     }
 
     const ref = nextRef(tx.s, 'SL');
-    const patient = tx.create('patient', { alias: p.patientAlias ?? ref, approxAge: p.approxAge ?? null,
+    const patient = tx.create('patient', { alias: p.patientAlias ?? ref, approxAge: p.approxAge ?? null, sex: p.sex ?? null,
       location: { kind: 'pre_hospital', hospitalId: null, department: null, since: tx.now } }, 'p');
     const caseRec = tx.create('case', {
       ref, patientId: patient.id, source: crew ? 'ambulance' : 'citizen', destinationHospitalId: p.destinationHospitalId, department: 'ER', deviceRef: crew ? null : p.deviceRef ?? null,
       status: 'active', journey: 'expected', triage: null, disposition: null, stepDown: null, transferId: null, arrivedAt: null,
-      crewAcuity: crew && p.crewAcuity ? { level: p.crewAcuity, source: 'crew-reported' } : null,
-      requirements: { isolation: false, ventilator: false, ...(crew ? pick(p.requirements ?? {}, ['isolation', 'ventilator', 'monitor']) : {}) },
+      crewAcuity: crew && p.crewAcuity ? { level: p.crewAcuity, source: 'crew' } : null,
+      requirements: { isolation: false, ventilator: false, monitor: false, ...(crew ? pick(p.requirements ?? {}, REQ_KEYS) : {}) },
       reportedConcern: p.concern, assignedCoordinatorId: null, submittedBy: actor.id, noticeId: null, ambulanceAssignmentId: null,
       destinationHistory: [{ hospitalId: p.destinationHospitalId, at: tx.now, by: actor.id, reason: null }],
     }, 'case');
+    const handover = crew ? { crewNotes: null, interventions: [], receivingRequirements: null, history: null, allergies: null,
+      ...pick(p, HANDOVER_TEXT), ...(p.interventions ? { interventions: [...p.interventions] } : {}),
+      crewAcuity: p.crewAcuity ? { level: p.crewAcuity, source: 'crew' } : null, vitals: newReadings([]) } : null;
     const notice = tx.create('arrivalNotice', {
       caseId: caseRec.id, source: caseRec.source, submittedBy: actor.id, submittedAt: tx.now, clientRef: p.clientRef ?? null, deviceRef: caseRec.deviceRef,
       status: 'submitted', acknowledged: null, etaAt: p.etaAt ?? null, transportMode: crew ? 'ambulance' : (p.transportMode ?? 'unknown'),
       reported: { ageText: null, onset: null, awake: 'unknown', breathing: 'unknown', awakeBreathing: 'unknown', conditions: null, allergies: null, patientCount: 1,
         location: null, contact: null, accessibilityNeeds: null, ...pick(p, REPORTED_FIELDS) },
       transcript: p.transcript ?? null, extractionMethod: p.extractionMethod ?? (crew ? 'crew-entered' : 'manual'),
-      clinicallyVerified: false, handover, revision: 1,
+      clinicallyVerified: false, handover, revision: 1, updates: [],
       timeline: [{ at: tx.now, by: actor.id, event: 'submitted', detail: msg('tl.sent', { hospital: hospitalName(tx.s, p.destinationHospitalId) }) }],
     }, 'an');
     caseRec.noticeId = notice.id;
@@ -3221,9 +3734,11 @@ action('submitArrival', {
   effects: (tx, _c, p, actor, ctx) => {
     const c = ctx.caseRec;
     const eta = tx.s.arrivalNotices[ctx.noticeId].etaAt;
-    const message = ctx.result.created
-      ? (eta ? msg('notifMsg.newNoticeEta', { source: SOURCE_MSG[c.source], ref: c.ref, eta: iso(eta) }) : msg('notifMsg.newNotice', { source: SOURCE_MSG[c.source], ref: c.ref }))
-      : (eta ? msg('notifMsg.handoverUpdatedEta', { ref: c.ref, eta: iso(eta) }) : msg('notifMsg.handoverUpdated', { ref: c.ref }));
+    if (!ctx.result.created) {
+      tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'handover_updated', msg('notifMsg.handoverUpdatedFields', { ref: c.ref, count: ctx.changes.length }), { entity: 'case', id: c.id });
+      return;
+    }
+    const message = eta ? msg('notifMsg.newNoticeEta', { source: SOURCE_MSG[c.source], ref: c.ref, eta: iso(eta) }) : msg('notifMsg.newNotice', { source: SOURCE_MSG[c.source], ref: c.ref });
     tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'incoming_handover', message, { entity: 'case', id: c.id });
   },
 });
@@ -3416,12 +3931,7 @@ action('confirmArrival', {
   },
   apply: (tx, r, p, actor) => {
     if (r.entity === 'case') {
-      tx.update(patientOf(tx.s, r), { location: { kind: 'er_waiting', hospitalId: r.destinationHospitalId, department: 'ER', since: tx.now } });
-      r.journey = 'triage_pending';
-      r.arrivedAt = tx.now;
-      const n = tx.s.arrivalNotices[r.noticeId];
-      if (n) { tx.update(n, { status: 'arrived' }); tx.timeline(n, 'arrived', msg('tl.arrived', { hospital: hospitalName(tx.s, r.destinationHospitalId) })); }
-      if (r.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[r.ambulanceAssignmentId], { status: 'arrived' });
+      arriveAtEr(tx, r);
       return { summary: msg('audit.arrivedEr', { ref: r.ref }), caseRec: r };
     }
     const c = tx.s.cases[r.caseId];
@@ -3435,11 +3945,7 @@ action('confirmArrival', {
   effects: (tx, r, _p, _a, ctx) => {
     const c = ctx.caseRec;
     if (r.entity === 'case') {
-      if (c.source === 'ambulance') {
-        tx.task({ category: 'ambulance_handover', title: msg('taskTitle.ambulanceHandover', { ref: c.ref }), linked: { caseId: c.id, patientId: c.patientId },
-          requiredRole: 'nurse', department: 'ER', hospitalId: c.destinationHospitalId, priority: 'high', dueMinutes: 15 });
-      }
-      tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'arrived', msg('notifMsg.arrived', { ref: c.ref }), { entity: 'case', id: c.id });
+      afterErArrival(tx, c);
       return;
     }
     tx.notify(toCoordinators(r.hospitalId, 'ER'), 'transfer_complete', msg('notifMsg.transferPlaced', { ref: c.ref, bed: tx.s.beds[r.targetBedId].label }), { entity: 'transferRequest', id: r.id });
@@ -4336,6 +4842,57 @@ action('assignCoordinator', {
   },
 });
 
+
+// ===========================================================================
+// Ambulance crew status: sent → (acknowledged by the ER) → en route → arrived → (handover completed by the ER)
+// ===========================================================================
+// Arrival at the ER door (not a bed placement): shared by confirmArrival and the crew's "Arrived".
+function arriveAtEr(tx, c) {
+  tx.update(patientOf(tx.s, c), { location: { kind: 'er_waiting', hospitalId: c.destinationHospitalId, department: 'ER', since: tx.now } });
+  tx.update(c, { journey: 'triage_pending', arrivedAt: tx.now });
+  const n = tx.s.arrivalNotices[c.noticeId];
+  if (n) { tx.update(n, { status: 'arrived' }); tx.timeline(n, 'arrived', msg('tl.arrived', { hospital: hospitalName(tx.s, c.destinationHospitalId) })); }
+  if (c.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[c.ambulanceAssignmentId], { status: 'arrived' });
+}
+function afterErArrival(tx, c) {
+  if (c.source === 'ambulance') {
+    tx.task({ category: 'ambulance_handover', title: msg('taskTitle.ambulanceHandover', { ref: c.ref }), linked: { caseId: c.id, patientId: c.patientId },
+      requiredRole: 'nurse', department: 'ER', hospitalId: c.destinationHospitalId, priority: 'high', dueMinutes: 15 });
+  }
+  tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'arrived', msg('notifMsg.arrived', { ref: c.ref }), { entity: 'case', id: c.id });
+}
+
+const CREW_NEXT = { en_route: ['submitted', 'acknowledged'], arrived: ['en_route'] };
+action('updateCrewStatus', {
+  target: (s, p) => find(s, 'case', p.caseId),
+  scope: (s, c, p) => caseScope(s, c, p),
+  validate: (s, c, p) => {
+    if (p.status === 'acknowledged') return msg('err.crewCannotAcknowledge');
+    if (p.status === 'handover_complete') return msg('err.crewCannotCompleteHandover');
+    if (!CREW_NEXT[p.status]) return msg('err.crewStatusUnknown');
+    if (c.status !== 'active') return caseStatusError(c);
+    if (patientOf(s, c).location.kind !== 'pre_hospital') return msg('err.caseOnSite', { ref: c.ref });
+    const from = s.arrivalNotices[c.noticeId]?.status;
+    if (!CREW_NEXT[p.status].includes(from)) return msg('err.crewStatusTransition', { from: NOTICE_STATUS_MSG[from] ?? NO_TEXT, to: NOTICE_STATUS_MSG[p.status] });
+    return null;
+  },
+  apply: (tx, c, p) => {
+    if (p.status === 'arrived') {
+      arriveAtEr(tx, c);
+    } else {
+      const n = tx.s.arrivalNotices[c.noticeId];
+      tx.update(n, { status: 'en_route' });
+      tx.timeline(n, 'en_route', msg('tl.enRoute'));
+      if (c.ambulanceAssignmentId) tx.update(tx.s.ambulanceAssignments[c.ambulanceAssignmentId], { status: 'en_route' });
+    }
+    return { summary: msg('audit.crewStatus', { ref: c.ref, status: NOTICE_STATUS_MSG[p.status] }) };
+  },
+  effects: (tx, c, p) => {
+    if (p.status === 'arrived') afterErArrival(tx, c);
+    else tx.notify(toCoordinators(c.destinationHospitalId, 'ER'), 'eta_changed', msg('notifMsg.crewEnRoute', { ref: c.ref }), { entity: 'case', id: c.id });
+  },
+});
+
 return { ACTION_NAMES, targetOf, preflight, applyAction, bindEngine, memoryEngine, dispatch, nextTaskStatuses, completionActionFor };
 })();
 
@@ -4613,14 +5170,15 @@ function initStore() {
 function isStaff(u) {
   return !!u && !['citizen', 'paramedic'].includes(u.role) && u.active !== false;
 }
+const isCrew = (u) => !!u && u.role === 'paramedic' && !!u.ambulanceId && u.active !== false;
 
-// The active demo account is per tab (sessionStorage), so two tabs can act as different staff.
+// The active demo account is per tab (sessionStorage), so two tabs can act as different people (staff or a crew).
 function currentUser() {
   const s = state();
   let id = null;
   try { id = sessionStorage.getItem(SESSION_KEY); } catch { /* storage blocked */ }
   const u = s.users[id];
-  return isStaff(u) ? u : s.users[DEFAULT_USER];
+  return isStaff(u) || isCrew(u) ? u : s.users[DEFAULT_USER];
 }
 // Which department dashboards an account may open: ER/ICU staff their own; hospital-wide roles both.
 function deptAccess(u) {
@@ -4628,6 +5186,8 @@ function deptAccess(u) {
 }
 const QUEUE_ROLES = ['housekeeping', 'maintenance_tech', 'biomed_tech', 'diagnostics'];
 function routeAllowed(route, u) {
+  if (isCrew(u)) return false; // crews use the mobile crew screens only
+  if (route === 'admin') return u.role === 'admin';
   if (route === 'er') return deptAccess(u).includes('ER');
   if (route === 'icu') return deptAccess(u).includes('ICU');
   if (route === 'queue') return QUEUE_ROLES.includes(u.role);
@@ -4635,6 +5195,8 @@ function routeAllowed(route, u) {
   return route === 'tasks';
 }
 function defaultRoute(u) {
+  if (isCrew(u)) return 'crew';
+  if (u.role === 'admin') return 'admin';
   if (u.role === 'porter') return 'transport';
   if (QUEUE_ROLES.includes(u.role)) return 'queue';
   return u.department === 'ICU' ? 'icu' : 'er';
@@ -4692,6 +5254,19 @@ function run(action, payload, { seen, quiet = false, silent = false, onDone, as 
   return res;
 }
 
+// ---------- "Handover updated" badge: which revision this user last opened (UI state, per user, this browser) ----------
+const VIEWED_KEY = (uid) => `sila.viewed.${uid}`;
+function viewedMap() {
+  try { return JSON.parse(localStorage.getItem(VIEWED_KEY(currentUser().id)) ?? '{}'); } catch { return {}; }
+}
+const viewedRevision = (caseId) => viewedMap()[caseId] ?? 1;
+function markViewed(caseId, revision) {
+  const m = viewedMap();
+  if ((m[caseId] ?? 1) >= revision) return;
+  m[caseId] = revision;
+  try { localStorage.setItem(VIEWED_KEY(currentUser().id), JSON.stringify(m)); } catch { /* storage blocked */ }
+}
+
 // ---------- Citizen sessions (no login) ----------
 // A citizen acts through the shared citizen account; this browser's device id decides which notices it owns.
 const CITIZEN_USER = 'u-citizen-public';
@@ -4734,6 +5309,7 @@ function openRecord(ref) {
 function closeDrawer() {
   const d = ctx.ui.drawer;
   ctx.ui.drawer = null;
+  ctx.ui.viewSnapshot = null;
   requestRender();
   // Return focus to the card that opened it, once re-rendered.
   if (d) requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-focus-key="open:${d.type}:${d.id}"]`)?.focus()));
@@ -4827,7 +5403,7 @@ function clearEl(id) {
   return clear(document.getElementById(id));
 }
 
-return { ctx, DEFAULT_USER, now, state, initStore, isStaff, currentUser, deptAccess, QUEUE_ROLES, routeAllowed, defaultRoute, setCurrentUser, requestRender, check, seenVersion, canSeePatient, run, CITIZEN_USER, deviceRef, runCitizen, checkCitizen, seenCitizen, openRecord, closeDrawer, toast, openDialog, field, clearEl };
+return { ctx, DEFAULT_USER, now, state, initStore, isStaff, isCrew, currentUser, deptAccess, QUEUE_ROLES, routeAllowed, defaultRoute, setCurrentUser, requestRender, check, seenVersion, canSeePatient, run, viewedRevision, markViewed, CITIZEN_USER, deviceRef, runCitizen, checkCitizen, seenCitizen, openRecord, closeDrawer, toast, openDialog, field, clearEl };
 })();
 
 // ---- config.js ----
@@ -4863,6 +5439,7 @@ const TRAVEL = {
   taxi: { fixed: 8, perKm: 2 },
   walking: { fixed: 0, perKm: 12 },
   unknown: { fixed: 3, perKm: 2 },
+  ambulance: { fixed: 1, perKm: 1.5 }, // simulated: lights and sirens, no parking
 };
 
 return { REGION, DEMO_GRID, DEMO_BOUNDS, DISTRICTS, TRAVEL };
@@ -4914,6 +5491,7 @@ __sila_modules["selectors.js"] = (() => {
 const { values, isOpenTask, isOpenTicket, ACTIVE_TRANSFER_STATUS } = __sila_modules["data.js"];
 const { msg } = __sila_modules["messages.js"];
 const { simulatedTrip } = __sila_modules["geo.js"];
+const { can } = __sila_modules["permissions.js"];
 const { deriveBedReadiness, forecastReadyTime, incomingCases, activeReservationForBed, myTasks, expectedToFreeSoon, suggestedBedFor } = __sila_modules["readiness.js"];
 
 const byLabel = (a, b) => a.label.localeCompare(b.label);
@@ -5281,7 +5859,49 @@ function selectRecentlyCanceled(state, hospitalId, now, windowMinutes = 120) {
     && ms(now) - ms(c.updatedAt) <= windowMinutes * 60000).sort((a, b) => ms(b.updatedAt) - ms(a.updatedAt));
 }
 
-return { BLOCKED_KINDS, erBeds, selectIncoming, selectAwaitingTriage, selectWaiting, selectInCare, selectAvailableBeds, selectReservedBeds, selectBeingCleaned, selectBlockedBeds, selectIcuRequests, selectOverdueWork, ER_TILE_KEYS, erDashboard, deriveErCounts, bedBoardStatus, commentsFor, historyFor, careTasksForPatient, bedWorkTasks, selectMyWork, unreadCount, icuBeds, ICU_TILE_KEYS, icuDashboard, TRANSFER_STEP_KEYS, transferSteps, housekeepingQueue, maintenanceQueue, biomedQueue, diagnosticsQueue, porterJobs, PUBLIC_HOSPITAL_FIELDS, publicHospitals, rankHospitals, citizenCases, citizenCaseView, deviceNotifications, selectRecentlyCanceled };
+// ---------------------------------------------------------------------------
+// Ambulance crews: a unit sees only the cases assigned to it
+// ---------------------------------------------------------------------------
+function unitMembers(state, ambulanceId) {
+  return values(state, 'users').filter((u) => u.role === 'paramedic' && u.ambulanceId === ambulanceId);
+}
+
+const unitOfCase = (state, c) => (c?.ambulanceAssignmentId ? state.ambulanceAssignments[c.ambulanceAssignmentId]?.ambulanceId ?? null : null);
+
+function crewCases(state, user) {
+  if (user?.role !== 'paramedic' || !user.ambulanceId) return [];
+  return values(state, 'cases').filter((c) => unitOfCase(state, c) === user.ambulanceId).sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
+}
+
+// Permission scope for a crew read: the case belongs to every member of the unit it is assigned to.
+function crewScope(state, c) {
+  const unit = unitOfCase(state, c);
+  return { entity: 'case', hospitalId: c.destinationHospitalId, assignedUserIds: unit ? unitMembers(state, unit).map((u) => u.id) : [] };
+}
+
+// Full handover view of one case for its own crew (null for any other unit).
+function crewCaseView(state, caseId, user) {
+  const c = state.cases[caseId];
+  if (!c || !user || !can(user, 'viewCrewCase', crewScope(state, c)).allowed) return null;
+  const n = state.arrivalNotices[c.noticeId];
+  return {
+    case: c, notice: n, patient: state.patients[c.patientId], assignment: state.ambulanceAssignments[c.ambulanceAssignmentId],
+    destination: state.hospitals[c.destinationHospitalId], acknowledged: n?.acknowledged ?? null,
+    clarifications: values(state, 'comments').filter((cm) => cm.caseId === c.id && cm.kind === 'clarification').sort((a, b) => ms(a.createdAt) - ms(b.createdAt)),
+    reservation: values(state, 'reservations').find((r) => r.caseId === c.id && r.status === 'active') ?? null,
+  };
+}
+
+// Audit log for the admin page, newest first, with optional filters.
+function auditLog(state, { userId = null, recordId = null, action = null, from = null, to = null } = {}) {
+  return values(state, 'auditEvents')
+    .filter((e) => (!userId || e.actorId === userId) && (!action || e.action === action)
+      && (!recordId || e.refs?.some((r) => r.id === recordId) || e.changed?.includes(recordId))
+      && (!from || ms(e.at) >= ms(from)) && (!to || ms(e.at) <= ms(to)))
+    .sort((a, b) => ms(b.at) - ms(a.at));
+}
+
+return { BLOCKED_KINDS, erBeds, selectIncoming, selectAwaitingTriage, selectWaiting, selectInCare, selectAvailableBeds, selectReservedBeds, selectBeingCleaned, selectBlockedBeds, selectIcuRequests, selectOverdueWork, ER_TILE_KEYS, erDashboard, deriveErCounts, bedBoardStatus, commentsFor, historyFor, careTasksForPatient, bedWorkTasks, selectMyWork, unreadCount, icuBeds, ICU_TILE_KEYS, icuDashboard, TRANSFER_STEP_KEYS, transferSteps, housekeepingQueue, maintenanceQueue, biomedQueue, diagnosticsQueue, porterJobs, PUBLIC_HOSPITAL_FIELDS, publicHospitals, rankHospitals, citizenCases, citizenCaseView, deviceNotifications, selectRecentlyCanceled, unitMembers, crewCases, crewScope, crewCaseView, auditLog };
 })();
 
 // ---- ui/components.js ----
@@ -5318,19 +5938,19 @@ function panel(title, iconName, count, ...children) {
  * - Direct actions run immediately (full preflight: permission + transition).
  * - `open` actions (dialogs) check permission only; the dialog collects the required input and the engine validates.
  */
-function actionButton({ action, payload, label, kind = '', iconName = null, open = null, focusKey = null, small = false }) {
+function actionButton({ action, payload, label, kind = '', iconName = null, open = null, focusKey = null, small = false, big = false, onDone = null }) {
   const verdict = check(action, payload, { permissionOnly: !!open });
   const seen = seenVersion(action, payload);
   const whyId = nextUid('why');
   const btn = h('button', {
-    type: 'button', class: ['btn', kind, small && 'small'], disabled: !verdict.ok,
+    type: 'button', class: ['btn', kind, small && 'small', big && 'big'], disabled: !verdict.ok,
     'aria-describedby': verdict.ok ? null : whyId, 'data-focus-key': focusKey ?? `${action}:${JSON.stringify(payload)}`,
     onclick: (e) => {
       e.stopPropagation();
       if (open) open(seen);
-      else run(action, payload, { seen });
+      else run(action, payload, { seen, onDone });
     },
-  }, iconName ? icon(iconName, { size: 16 }) : null, label);
+  }, iconName ? icon(iconName, { size: big ? 20 : 16 }) : null, label);
   return h('div', { class: 'action' }, btn,
     verdict.ok ? null : h('span', { class: 'why', id: whyId }, icon('info', { size: 14 }), t('common.whyDisabled', { reason: verdict.reason })));
 }
@@ -5573,7 +6193,7 @@ const { unreadCount, selectMyWork, citizenCases } = __sila_modules["selectors.js
 const { t, tm, formatRelative } = __sila_modules["i18n.js"];
 const { h, clear } = __sila_modules["ui/dom.js"];
 const { icon } = __sila_modules["ui/icons.js"];
-const { ctx, state, now, currentUser, setCurrentUser, isStaff, requestRender, run, openRecord, seenVersion, deptAccess, QUEUE_ROLES, deviceRef } = __sila_modules["ui/core.js"];
+const { ctx, state, now, currentUser, setCurrentUser, isStaff, isCrew, requestRender, run, openRecord, seenVersion, deptAccess, QUEUE_ROLES, deviceRef, defaultRoute } = __sila_modules["ui/core.js"];
 const { emptyState, pill, roleLabel } = __sila_modules["ui/components.js"];
 const { openReset } = __sila_modules["ui/forms.js"];
 
@@ -5595,6 +6215,7 @@ function renderTopbar(el) {
       deptAccess(u).includes('ICU') ? navLink('icu', 'bed', t('nav.icu')) : null,
       QUEUE_ROLES.includes(u.role) ? navLink('queue', 'broom', t(`nav.queue.${u.role}`)) : null,
       u.role === 'porter' ? navLink('transport', 'transfer', t('nav.transport')) : null,
+      u.role === 'admin' ? navLink('admin', 'history', t('nav.admin')) : null,
       navLink('tasks', 'tasks', t('nav.tasks'), myWork.tasks.length + myWork.tickets.length)),
     h('div', { class: 'topbar-end' },
       userCard(s, u),
@@ -5616,15 +6237,42 @@ function userCard(s, u) {
       h('span', { text: s.hospitals[u.hospitalId]?.shortName ?? '' })));
 }
 
-function switcher(s, u) {
+// Demo sign-in: hospital staff grouped by hospital, then the ambulance crews (signing in as a crew opens the crew screens).
+function switcher(s, u, { onCrewPage = false } = {}) {
   const staff = values(s, 'users').filter(isStaff);
+  const crews = values(s, 'users').filter(isCrew).sort((a, b) => a.ambulanceId.localeCompare(b.ambulanceId) || a.name.localeCompare(b.name));
   const groups = values(s, 'hospitals').map((hosp) => ({ hosp, users: staff.filter((x) => x.hospitalId === hosp.id) })).filter((g) => g.users.length);
+  const signedIn = onCrewPage ? isCrew(u) : true;
+  const change = (id) => {
+    setCurrentUser(id);
+    const next = s.users[id];
+    if (isCrew(next) !== onCrewPage) location.hash = `#/${defaultRoute(next)}`;
+  };
   return h('div', { class: 'switcher' },
     h('label', { for: 'role-switcher', text: t('switcher.label') }),
-    h('select', { id: 'role-switcher', 'aria-describedby': 'role-switcher-hint', 'data-focus-key': 'switcher', onchange: (e) => setCurrentUser(e.target.value) },
-      groups.map(({ hosp, users }) => h('optgroup', { label: hosp.name }, users.map((x) => h('option', { value: x.id, selected: x.id === u.id,
-        text: t('switcher.option', { name: x.name, role: roleLabel(x.role), dept: x.department ? t('switcher.deptSuffix', { dept: t(`dept.${x.department}`) }) : '' }) }))))),
+    h('select', { id: 'role-switcher', 'aria-describedby': 'role-switcher-hint', 'data-focus-key': 'switcher', onchange: (e) => change(e.target.value) },
+      signedIn ? null : h('option', { value: '', selected: true, disabled: true, text: t('switcher.chooseCrew') }),
+      groups.map(({ hosp, users }) => h('optgroup', { label: hosp.name }, users.map((x) => h('option', { value: x.id, selected: signedIn && x.id === u.id,
+        text: t('switcher.option', { name: x.name, role: roleLabel(x.role), dept: x.department ? t('switcher.deptSuffix', { dept: t(`dept.${x.department}`) }) : '' }) })))),
+      crews.length ? h('optgroup', { label: t('switcher.crewGroup') }, crews.map((x) => h('option', { value: x.id, selected: signedIn && x.id === u.id,
+        text: t('switcher.option', { name: x.name, role: roleLabel(x.role), dept: t('switcher.deptSuffix', { dept: x.ambulanceId }) }) }))) : null),
     h('span', { id: 'role-switcher-hint', class: 'sr-only', text: t('switcher.hint') }));
+}
+
+// Header for the crew screens (mobile-first): home, unread messages for this crew member, and the demo sign-in.
+function renderCrewTopbar(el) {
+  clear(el);
+  const s = state();
+  const u = currentUser();
+  const unread = isCrew(u) ? unreadCount(notificationsFor(s, u), u) : 0;
+  el.append(
+    h('a', { class: 'brand', href: '#/welcome', 'aria-label': t('public.home') }, icon('logo', { size: 30, cls: 'logo' }),
+      h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('welcome.ambulanceTitle') }))),
+    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
+    h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
+      h('a', { href: '#/crew', 'aria-current': ctx.ui.route === 'home' ? 'page' : null }, icon('ambulance', { size: 16 }), t('nav.crew'),
+        unread ? h('span', { class: 'count-badge', 'aria-label': t('notif.buttonCount', { n: unread }), text: String(unread) }) : null)),
+    switcher(s, u, { onCrewPage: true }));
 }
 
 // Header for public pages (citizens): no accounts, no role switcher — just home, this device's notices and staff entry.
@@ -5669,7 +6317,7 @@ function renderNotifications(root) {
     })) : emptyState(t('notif.empty'), 'bell')));
 }
 
-return { renderTopbar, renderPublicTopbar, renderNotifications };
+return { renderTopbar, renderCrewTopbar, renderPublicTopbar, renderNotifications };
 })();
 
 // ---- extract.js ----
@@ -5803,6 +6451,10 @@ __sila_modules["ui/voice.js"] = (() => {
 // Test seam for verification: set globalThis.__silaSpeechOverride = null to simulate a browser without the API,
 // or to a constructor (e.g. a fake that emits an error) to simulate permission denial or network failure.
 
+const { t } = __sila_modules["i18n.js"];
+const { h, nextUid } = __sila_modules["ui/dom.js"];
+const { icon } = __sila_modules["ui/icons.js"];
+
 const ERROR_KEY = {
   'not-allowed': 'voice.denied', 'service-not-allowed': 'voice.denied', 'no-speech': 'voice.noSpeech',
   network: 'voice.network', 'audio-capture': 'voice.noMic',
@@ -5859,7 +6511,48 @@ function createVoice({ lang, onFinal, onInterim, onState, onError }) {
   };
 }
 
-return { speechImpl, createVoice };
+// ---------- Shared Start/Stop panel (citizen description and crew notes) ----------
+// One recognizer at a time; the panel that started it shows its listening state and any error.
+
+const live = { key: null, listening: false, interim: '', errorKey: null, voice: null };
+
+function stopVoice() {
+  live.voice?.stop();
+}
+
+/** voicePanel({ key, lang, onFinal(text), rerender, label }) → the Start/Stop row, live status, error and privacy note. */
+function voicePanel({ key, lang, onFinal, rerender, label }) {
+  const mine = live.key === key;
+  const listening = mine && live.listening;
+  const errorKey = mine ? live.errorKey : null;
+  const errId = nextUid('voice-error');
+  const start = () => {
+    live.voice?.stop();
+    Object.assign(live, { key, errorKey: null, interim: '' });
+    live.voice = createVoice({
+      lang,
+      onFinal: (text) => { onFinal(text); rerender(); },
+      onInterim: (text) => { live.interim = text; rerender(); },
+      onState: (on) => { live.listening = on; rerender(); },
+      onError: (k) => { live.errorKey = k; live.listening = false; rerender(); },
+    });
+    live.voice.start();
+  };
+  return h('section', { class: 'panel voice-panel', 'aria-label': label },
+    speechImpl()
+      ? h('div', { class: 'voice-row' },
+        h('button', { type: 'button', class: ['btn', 'big', listening ? 'danger' : 'primary'], 'data-focus-key': `voice-toggle:${key}`,
+          'aria-describedby': errorKey ? errId : null, onclick: () => (listening ? live.voice?.stop() : start()) },
+        icon('mic', { size: 20 }), listening ? t('voice.stop') : t('voice.start')),
+        h('p', { class: ['voice-status', listening && 'on'], role: 'status' },
+          h('span', { class: 'dot', 'aria-hidden': 'true' }), listening ? t('voice.listening') : t('voice.idle'),
+          listening && live.interim ? h('em', { text: ` “${live.interim}”` }) : null))
+      : h('p', { class: 'notice warn' }, icon('mic', { size: 18 }), h('span', { text: t('voice.unsupported') })),
+    errorKey ? h('p', { class: 'form-error', id: errId, role: 'alert', text: t(errorKey) }) : null,
+    h('p', { class: 'small muted', text: t('voice.privacy') }));
+}
+
+return { speechImpl, createVoice, stopVoice, voicePanel };
 })();
 
 // ---- ui/citymap.js ----
@@ -5879,8 +6572,8 @@ function s(tag, attrs = {}, ...children) {
   return el;
 }
 
-/** cityMap({ hospitals: [{ id, shortName, name, position, trip? }], point, selectedId, onSelect }) */
-function cityMap({ hospitals, point, selectedId, onSelect }) {
+/** cityMap({ hospitals: [{ id, shortName, name, position, trip? }], point, pointLabel, selectedId, onSelect }) */
+function cityMap({ hospitals, point, pointLabel = t('hospitals.you'), selectedId, onSelect }) {
   const W = DEMO_GRID.width * K;
   const H = DEMO_GRID.height * K;
   const selected = hospitals.find((h) => h.id === selectedId);
@@ -5894,13 +6587,14 @@ function cityMap({ hospitals, point, selectedId, onSelect }) {
     point && selected ? s('line', { x1: point.x * K, y1: point.y * K, x2: selected.position.x * K, y2: selected.position.y * K, class: 'route' }) : null,
     point ? s('g', { class: 'you', 'aria-hidden': 'true' },
       s('circle', { cx: point.x * K, cy: point.y * K, r: 6 }), s('circle', { cx: point.x * K, cy: point.y * K, r: 2.5, class: 'dot' }),
-      s('text', { x: point.x * K, y: point.y * K - 10, 'text-anchor': 'middle' }, t('hospitals.you'))) : null,
+      s('text', { x: point.x * K, y: point.y * K - 10, 'text-anchor': 'middle' }, pointLabel)) : null,
     hospitals.map((h) => {
       const x = h.position.x * K;
       const y = h.position.y * K;
       const g = s('g', { class: ['marker', h.id === selectedId ? 'selected' : ''].join(' '), tabindex: 0, role: 'button',
         'aria-pressed': String(h.id === selectedId), 'data-focus-key': `map:${h.id}`,
         'aria-label': h.trip ? `${h.name}, ${t('hospitals.distance', { km: h.trip.km })} (${t('hospitals.simulated')})` : h.name },
+        s('circle', { cx: x, cy: y, r: 15, class: 'hit' }), // invisible touch target (≥ 44px at phone width)
         s('circle', { cx: x, cy: y, r: 9 }),
         s('path', { d: `M${x} ${y - 4.5}v9M${x - 4.5} ${y}h9`, class: 'cross' }),
         s('text', { x, y: y + 20, 'text-anchor': 'middle' }, h.shortName));
@@ -5928,7 +6622,7 @@ const { h, append, nextUid } = __sila_modules["ui/dom.js"];
 const { icon, citizenIllustration, ambulanceCardIllustration } = __sila_modules["ui/icons.js"];
 const { state, now, requestRender, runCitizen, checkCitizen, deviceRef } = __sila_modules["ui/core.js"];
 const { pill } = __sila_modules["ui/components.js"];
-const { createVoice, speechImpl } = __sila_modules["ui/voice.js"];
+const { voicePanel, stopVoice } = __sila_modules["ui/voice.js"];
 const { cityMap } = __sila_modules["ui/citymap.js"];
 
 // ---------- Draft (this tab, survives reload) ----------
@@ -5987,19 +6681,12 @@ function renderWelcome(main) {
       h('a', { class: 'entry-card', href: '#/citizen', 'data-focus-key': 'entry-citizen' },
         citizenIllustration(), h('span', { class: 'entry-title', text: t('welcome.citizenTitle') }), h('span', { class: 'muted', text: t('welcome.citizenBody') }),
         h('span', { class: 'entry-go' }, icon('arrow', { size: 20 }))),
-      h('a', { class: 'entry-card', href: '#/ambulance', 'data-focus-key': 'entry-ambulance' },
+      h('a', { class: 'entry-card', href: '#/crew', 'data-focus-key': 'entry-ambulance' },
         ambulanceCardIllustration(), h('span', { class: 'entry-title', text: t('welcome.ambulanceTitle') }), h('span', { class: 'muted', text: t('welcome.ambulanceBody') }),
-        h('span', { class: 'chip', text: t('welcome.comingNext') }))),
+        h('span', { class: 'entry-go' }, icon('arrow', { size: 20 })))),
     h('a', { class: 'staff-entry', href: '#/er', 'data-focus-key': 'entry-staff' }, icon('staff', { size: 22 }),
       h('span', {}, h('strong', { text: t('welcome.staffTitle') }), h('span', { class: 'small muted', text: ` — ${t('welcome.staffBody')}` }))),
     emergencyBox(),
-  ]);
-}
-
-function renderAmbulancePlaceholder(main) {
-  append(main, [
-    h('section', { class: 'hero' }, ambulanceCardIllustration(), h('h1', { text: t('ambulance.placeholderTitle') }), h('p', { class: 'lead', text: t('ambulance.placeholderBody') })),
-    h('a', { class: 'btn big', href: '#/welcome' }, t('ambulance.back')),
   ]);
 }
 
@@ -6040,42 +6727,16 @@ function choiceCard(iconName, titleKey, bodyKey, onclick, pressed = null) {
 }
 
 // ---------- Step B: describe (voice or typed) ----------
-const voiceState = { listening: false, interim: '', errorKey: null };
-let voice = null;
-
-function startVoice() {
-  voiceState.errorKey = null;
-  voice = createVoice({
-    lang: lang() === 'ar' ? 'ar-SA' : 'en-US',
-    onFinal: (text) => { save({ transcript: `${draft().transcript} ${text}`.trim() }); requestRender(); },
-    onInterim: (text) => { voiceState.interim = text; requestRender(); },
-    onState: (listening) => { voiceState.listening = listening; requestRender(); },
-    onError: (key) => { voiceState.errorKey = key; voiceState.listening = false; requestRender(); },
-  });
-  voice.start();
-}
-
 function renderCapture(main) {
   const d = draft();
-  const supported = !!speechImpl();
   const id = nextUid('transcript');
-  const errId = nextUid('voice-error');
   const ready = d.transcript.trim().length > 0;
   append(main, [
     stepper(2),
     h('h1', { text: t('capture.title') }),
     h('p', { class: 'muted', text: t('capture.prompts') }),
-    h('section', { class: 'panel voice-panel', 'aria-label': t('start.voice') },
-      supported
-        ? h('div', { class: 'voice-row' },
-          bigButton(voiceState.listening ? t('voice.stop') : t('voice.start'), () => (voiceState.listening ? voice?.stop() : startVoice()),
-            { kind: voiceState.listening ? 'danger' : 'primary', iconName: 'mic', describedBy: voiceState.errorKey ? errId : null, focusKey: 'voice-toggle' }),
-          h('p', { class: ['voice-status', voiceState.listening && 'on'], role: 'status' },
-            h('span', { class: 'dot', 'aria-hidden': 'true' }), voiceState.listening ? t('voice.listening') : t('voice.idle'),
-            voiceState.interim ? h('em', { text: ` “${voiceState.interim}”` }) : null))
-        : note(t('voice.unsupported'), 'warn', 'mic'),
-      voiceState.errorKey ? h('p', { class: 'form-error', id: errId, role: 'alert', text: t(voiceState.errorKey) }) : null,
-      h('p', { class: 'small muted', text: t('voice.privacy') })),
+    voicePanel({ key: 'citizen', lang: lang() === 'ar' ? 'ar-SA' : 'en-US', label: t('start.voice'), rerender: requestRender,
+      onFinal: (text) => save({ transcript: `${draft().transcript} ${text}`.trim() }) }),
     h('div', { class: 'field' },
       h('label', { for: id, text: t('capture.textLabel') }),
       h('textarea', { id, rows: 7, dir: 'auto', 'data-preserve': 'citizen:transcript', 'data-model-backed': '', value: d.transcript, 'aria-describedby': `${id}-hint`,
@@ -6087,7 +6748,7 @@ function renderCapture(main) {
       h('span', { class: 'hint', id: `${id}-hint`, text: t('capture.textHint') })),
     h('div', { class: 'step-actions' },
       h('a', { class: 'btn big', href: '#/citizen' }, t('common.back')),
-      bigButton(t('capture.continue'), () => { voice?.stop(); startFrom(draft().transcript); go('citizen/review'); },
+      bigButton(t('capture.continue'), () => { stopVoice(); startFrom(draft().transcript); go('citizen/review'); },
         { disabled: !ready, describedBy: ready ? null : 'need-text', focusKey: 'capture-continue' })),
     ready ? null : h('p', { class: 'small muted', id: 'need-text', text: t('capture.needText') }),
   ]);
@@ -6279,7 +6940,826 @@ function send(d, hospital) {
   }
 }
 
-return { draft, resetDraft, renderWelcome, renderAmbulancePlaceholder, renderCitizenStart, renderCapture, renderReview, renderHospitals };
+return { draft, resetDraft, renderWelcome, renderCitizenStart, renderCapture, renderReview, renderHospitals, hospitalItem };
+})();
+
+// ---- ui/handover.js ----
+__sila_modules["ui/handover.js"] = (() => {
+// The structured ambulance handover exactly as the receiving ER reads it. Shared by the ER case drawer and the crew's
+// preview, so the crew checks the very card the ER will see. Everything here is crew-reported and labelled as such;
+// vital signs are shown as entered (value, unit, time) and are never interpreted, flagged or scored.
+
+const { formatVitalValue } = __sila_modules["vitals.js"];
+const { t, hasKey, formatTime, formatRelative } = __sila_modules["i18n.js"];
+const { h } = __sila_modules["ui/dom.js"];
+const { icon } = __sila_modules["ui/icons.js"];
+const { pill, userName } = __sila_modules["ui/components.js"];
+
+const INTERVENTION_CHIPS = ['iv', 'oxygen', 'splint', 'collar', 'ecg', 'glucose'];
+const REQUIREMENT_KEYS = ['isolation', 'ventilator', 'monitor'];
+const interventionLabel = (x) => (INTERVENTION_CHIPS.includes(x) ? t(`intervention.${x}`) : x);
+const acuityLabel = (level) => (level ? t(`acuity.${level}`) : t('acuity.none'));
+const crewAcuityText = (a) => t('incoming.crewAcuity', { level: acuityLabel(a?.level) });
+const vitalLabel = (type) => t(`vital.${type}`);
+const vitalValueText = (r) => `${formatVitalValue(r)}${r.unit ? ` ${r.unit}` : ''}`;
+const byTime = (a, b) => Date.parse(a.takenAt) - Date.parse(b.takenAt);
+
+/** Readings in time order: measurement, value with unit, time, who entered it (+ an optional extra column). */
+function vitalsTable(readings, { extra = null, extraHead = null } = {}) {
+  if (!readings.length) return h('p', { class: 'small muted', text: t('crew.noReadings') });
+  return h('div', { class: 'table-wrap' }, h('table', { class: 'vitals' },
+    h('thead', {}, h('tr', {},
+      h('th', { scope: 'col', text: t('vitals.type') }), h('th', { scope: 'col', text: t('vitals.value') }),
+      h('th', { scope: 'col', text: t('vitals.time') }), h('th', { scope: 'col', text: t('vitals.by') }),
+      extra ? h('th', { scope: 'col' }, extraHead ?? h('span', { class: 'sr-only', text: t('drawer.actions') })) : null)),
+    h('tbody', {}, [...readings].sort(byTime).map((r) => h('tr', {},
+      h('th', { scope: 'row', text: vitalLabel(r.type) }),
+      h('td', { class: 'num', dir: 'ltr', text: vitalValueText(r) }),
+      h('td', {}, h('time', { datetime: r.takenAt, text: formatTime(r.takenAt) })),
+      h('td', { text: r.enteredBy ? userName(r.enteredBy) : '' }),
+      extra ? h('td', {}, extra(r)) : null)))));
+}
+
+/** Everything the card shows, read from a case (ER side). The crew preview builds the same shape from its draft. */
+function handoverData(s, c) {
+  const n = s.arrivalNotices[c.noticeId];
+  const ho = n?.handover ?? {};
+  const p = s.patients[c.patientId];
+  const amb = c.ambulanceAssignmentId ? s.ambulanceAssignments[c.ambulanceAssignmentId] : null;
+  return {
+    ref: c.ref, unitId: amb?.ambulanceId ?? null, destinationName: s.hospitals[c.destinationHospitalId]?.name ?? '', etaAt: n?.etaAt ?? null,
+    approxAge: p?.approxAge ?? null, sex: p?.sex ?? null, patientCount: n?.reported?.patientCount ?? 1, concern: n?.reported?.concern ?? c.reportedConcern,
+    history: ho.history ?? null, allergies: ho.allergies ?? null, vitals: ho.vitals ?? [], crewAcuity: c.crewAcuity ?? null,
+    interventions: ho.interventions ?? [], requirements: c.requirements ?? {}, receivingRequirements: ho.receivingRequirements ?? null,
+    crewNotes: ho.crewNotes ?? null, updatedAt: n?.updatedAt ?? c.updatedAt,
+  };
+}
+
+/** handoverCard(data, { onEdit(sectionId), now }) — with onEdit each section gets an Edit button (crew preview). */
+function handoverCard(d, { onEdit = null, now } = {}) {
+  const val = (v) => (v === null || v === undefined || v === '' ? t('common.unknown') : String(v));
+  const block = (id, title, iconName, ...body) => h('section', { class: 'ho-section', 'aria-label': title },
+    h('div', { class: 'ho-head' }, h('h4', {}, icon(iconName, { size: 16 }), title),
+      onEdit ? h('button', { type: 'button', class: 'btn small', 'data-focus-key': `edit:${id}`, 'aria-label': `${t('crew.edit')} — ${title}`, onclick: () => onEdit(id) }, t('crew.edit')) : null),
+    ...body);
+  const facts = (pairs) => h('dl', { class: 'facts' }, pairs.flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { dir: 'auto', text: v })]));
+  const reqs = REQUIREMENT_KEYS.filter((k) => d.requirements?.[k]);
+  return h('article', { class: 'handover-card' },
+    h('p', { class: 'notice warn ho-banner' }, icon('alert', { size: 18 }), h('strong', { text: t('crew.previewBanner') })),
+    facts([
+      [t('crew.unitLabel'), d.unitId ?? t('common.unknown')],
+      [t('crew.section.destination'), val(d.destinationName)],
+      [t('incoming.eta'), d.etaAt ? `${formatTime(d.etaAt)}${now ? ` (${formatRelative(d.etaAt, now)})` : ''} · ${t('incoming.etaSimulated')}` : t('incoming.etaUnknown')],
+    ]),
+    block('patient', t('crew.section.patient'), 'person', facts([
+      [t('crew.age'), val(d.approxAge)], [t('crew.sexShort'), d.sex ? t(`sex.${d.sex}`) : t('sex.unknown')], [t('crew.patientCount'), val(d.patientCount)]])),
+    block('concern', t('crew.section.concern'), 'comment', h('p', { dir: 'auto', text: val(d.concern) })),
+    block('history', t('crew.section.history'), 'history', facts([[t('crew.history'), val(d.history)], [t('crew.allergies'), val(d.allergies)]])),
+    block('vitals', t('drawer.vitals'), 'monitor', vitalsTable(d.vitals)),
+    block('acuity', t('crew.section.acuity'), 'ambulance', h('p', {}, pill('neutral', crewAcuityText(d.crewAcuity), 'ambulance')),
+      h('p', { class: 'small muted', text: t('crew.acuityHint') })),
+    block('interventions', t('drawer.interventions'), 'stethoscope', d.interventions.length
+      ? h('ul', { class: 'chip-list' }, d.interventions.map((x) => h('li', { class: 'chip', dir: 'auto', text: interventionLabel(x) })))
+      : h('p', { class: 'small muted', text: t('common.none') })),
+    block('requirements', t('drawer.requirements'), 'bed',
+      reqs.length ? h('ul', { class: 'chip-list' }, reqs.map((k) => h('li', { class: 'chip' }, icon('check', { size: 14 }), t(`req.${k}`)))) : null,
+      d.receivingRequirements ? h('p', { dir: 'auto', text: `${t('req.other')}: ${d.receivingRequirements}` }) : null,
+      !reqs.length && !d.receivingRequirements ? h('p', { class: 'small muted', text: t('common.none') }) : null),
+    block('notes', t('drawer.crewNotes'), 'mic', d.crewNotes ? h('blockquote', { class: 'transcript', dir: 'auto', text: d.crewNotes }) : h('p', { class: 'small muted', text: t('common.none') })));
+}
+
+/** One "What changed" line for a recorded update entry (engine change list). */
+function changeText(ch, vitals) {
+  if (ch.field === 'vitals') {
+    const r = vitals.find((v) => v.id === ch.readingId);
+    return r ? t('change.vitals', { type: vitalLabel(r.type), value: formatVitalValue(r), unit: r.unit, time: formatTime(r.takenAt) })
+      : t('change.vitals', { type: vitalLabel(ch.type), value: '', unit: '', time: '' });
+  }
+  const field = hasKey(`changeField.${ch.field}`) ? t(`changeField.${ch.field}`) : t('changeField.other');
+  if (ch.field.startsWith('requirements.')) return t(ch.value ? 'change.reqOn' : 'change.reqOff', { field });
+  if (ch.field === 'crewAcuity') return t('change.acuity', { level: acuityLabel(ch.level) });
+  if (ch.field === 'etaAt') return t('change.eta', { time: formatTime(ch.value) });
+  return t('change.field', { field });
+}
+
+/** The ER's "What changed" list: every update, newest first; updates after `seenRevision` are marked new. */
+function whatChanged(notice, seenRevision = Infinity) {
+  const updates = [...(notice.updates ?? [])].reverse();
+  if (!updates.length) return h('p', { class: 'small muted', text: t('drawer.noChanges') });
+  const vitals = notice.handover?.vitals ?? [];
+  return h('ol', { class: 'changes' }, updates.map((u) => h('li', { class: u.revision > seenRevision ? 'new' : null },
+    h('p', { class: 'small' }, h('strong', { text: t('drawer.whatChanged', { n: u.revision, time: formatTime(u.at) }) }), ` · ${userName(u.by)}`,
+      u.revision > seenRevision ? [' ', pill('pending', t('incoming.handoverUpdated'), 'spark')] : null),
+    u.changes.length ? h('ul', { class: 'small' }, u.changes.map((ch) => h('li', { text: changeText(ch, vitals) }))) : h('p', { class: 'small muted', text: t('drawer.noChanges') }))));
+}
+
+return { INTERVENTION_CHIPS, REQUIREMENT_KEYS, interventionLabel, acuityLabel, crewAcuityText, vitalLabel, vitalValueText, vitalsTable, handoverData, handoverCard, changeText, whatChanged };
+})();
+
+// ---- ui/crew.js ----
+__sila_modules["ui/crew.js"] = (() => {
+// Ambulance crew screens (SPEC §5). Mobile-first (360px) and one-handed: large buttons, few taps.
+// Home → handover form (draft autosaved on this device) → preview exactly as the ER will see it → send →
+// live case view. Every change goes through dispatch(); disabled buttons show the engine's reason.
+// Nothing here interprets vital signs, suggests treatment or derives triage.
+
+const { DISTRICTS } = __sila_modules["config.js"];
+const { values } = __sila_modules["data.js"];
+const { extractIntake } = __sila_modules["extract.js"];
+const { VITAL_TYPES, VITAL_TYPE_KEYS, vitalProblem } = __sila_modules["vitals.js"];
+const { notificationsFor } = __sila_modules["readiness.js"];
+const { publicHospitals, rankHospitals, crewCases, crewCaseView, unitMembers } = __sila_modules["selectors.js"];
+const { t, tm, getLocale, formatTime, formatRelative } = __sila_modules["i18n.js"];
+const { h, append, nextUid } = __sila_modules["ui/dom.js"];
+const { icon, ambulanceIllustration, ambulanceCardIllustration } = __sila_modules["ui/icons.js"];
+const { state, now, currentUser, isCrew, setCurrentUser, requestRender, run, check, seenVersion, openDialog, field, toast } = __sila_modules["ui/core.js"];
+const { pill, emptyState, actionButton, userName } = __sila_modules["ui/components.js"];
+const { voicePanel, stopVoice } = __sila_modules["ui/voice.js"];
+const { cityMap } = __sila_modules["ui/citymap.js"];
+const { hospitalItem } = __sila_modules["ui/citizen.js"];
+const { handoverCard, vitalsTable, vitalLabel, INTERVENTION_CHIPS, REQUIREMENT_KEYS, crewAcuityText } = __sila_modules["ui/handover.js"];
+
+const go = (route) => { location.hash = `#/${route}`; };
+const lang = () => (getLocale() === 'ar' ? 'ar' : 'en');
+const ACUITY = ['critical', 'high', 'moderate', 'low'];
+const PROGRESS = ['submitted', 'acknowledged', 'en_route', 'arrived', 'handover_complete'];
+const MIN = 60000;
+const note = (text, kind = '', iconName = null) => h('p', { class: ['notice', kind] }, icon(iconName ?? (kind ? 'alert' : 'info'), { size: 18 }), h('span', { text }));
+const req = () => [h('span', { class: 'req', 'aria-hidden': 'true', text: ' *' }), h('span', { class: 'sr-only', text: ` (${t('dialog.required')})` })];
+
+// Local "HH:MM" for <input type="time">, and back to an ISO time today (or yesterday, for a reading taken before midnight).
+const hhmm = (iso) => { const d = new Date(iso); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function fromHhmm(v) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(v ?? '');
+  if (!m) return null;
+  const d = new Date(now());
+  d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  if (d.getTime() > Date.parse(now()) + 5 * MIN) d.setDate(d.getDate() - 1);
+  return d.toISOString();
+}
+
+// ---------- Draft: autosaved on this device, one per unit for a new case and one per case being updated ----------
+const DRAFT_PREFIX = 'sila.crewDraft';
+const draftKey = (u, caseId) => `${DRAFT_PREFIX}.${u.ambulanceId}.${caseId ?? 'new'}`;
+const blankEntry = () => ({ type: 'HR', value: '', systolic: '', diastolic: '', time: hhmm(now()), error: null });
+const blankDraft = () => ({
+  clientRef: `crew-${Math.random().toString(36).slice(2, 10)}`, approxAge: '', sex: '', concern: '', history: '', allergies: '',
+  vitals: [], entry: blankEntry(), crewAcuity: '', chips: [], interventionsText: '', requirements: { isolation: false, ventilator: false, monitor: false },
+  receivingRequirements: '', patientCount: '1', districtId: DISTRICTS[0].id, destinationHospitalId: null, etaMinutes: '', crewNotes: '',
+  suggestions: null, accepted: [], savedAt: null,
+});
+// An update starts from what was sent; readings already sent are shown from the case, the draft holds only new ones.
+function draftFromCase(s, c) {
+  const n = s.arrivalNotices[c.noticeId];
+  const ho = n?.handover ?? {};
+  const p = s.patients[c.patientId];
+  const ints = ho.interventions ?? [];
+  return {
+    ...blankDraft(), clientRef: n?.clientRef ?? null, approxAge: p?.approxAge != null ? String(p.approxAge) : '', sex: p?.sex ?? '',
+    concern: n?.reported?.concern ?? c.reportedConcern ?? '', history: ho.history ?? '', allergies: ho.allergies ?? '', crewAcuity: c.crewAcuity?.level ?? '',
+    chips: ints.filter((x) => INTERVENTION_CHIPS.includes(x)), interventionsText: ints.filter((x) => !INTERVENTION_CHIPS.includes(x)).join('; '),
+    requirements: Object.fromEntries(REQUIREMENT_KEYS.map((k) => [k, !!c.requirements?.[k]])), receivingRequirements: ho.receivingRequirements ?? '',
+    patientCount: String(n?.reported?.patientCount ?? 1), crewNotes: ho.crewNotes ?? '',
+  };
+}
+const cache = new Map();
+function loadDraft(u, caseId) {
+  const key = draftKey(u, caseId);
+  if (!cache.has(key)) {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { /* storage blocked */ }
+    const base = caseId ? draftFromCase(state(), state().cases[caseId]) : blankDraft();
+    cache.set(key, stored ? { ...base, ...stored, entry: { ...blankEntry(), ...stored.entry } } : base);
+  }
+  return cache.get(key);
+}
+function hasDraft(u, caseId) {
+  try { return localStorage.getItem(draftKey(u, caseId)) !== null; } catch { return cache.has(draftKey(u, caseId)); }
+}
+function saveDraft(u, caseId, patch) {
+  const d = Object.assign(loadDraft(u, caseId), patch, { savedAt: now() });
+  try { localStorage.setItem(draftKey(u, caseId), JSON.stringify(d)); } catch { /* storage blocked: kept for this tab only */ }
+  return d;
+}
+function discardDraft(u, caseId) {
+  cache.delete(draftKey(u, caseId));
+  try { localStorage.removeItem(draftKey(u, caseId)); } catch { /* storage blocked */ }
+}
+
+// ---------- Draft → engine payload ----------
+const text = (v) => (v !== null && v !== undefined && String(v).trim() ? String(v).trim() : null);
+const ageValue = (v) => (text(v) === null ? null : /^\d+$/.test(text(v)) ? Number(text(v)) : text(v)); // anything else is rejected by the engine
+const interventionsOf = (d) => [...d.chips, ...(text(d.interventionsText) ? [text(d.interventionsText)] : [])];
+const pointOf = (d) => { const x = DISTRICTS.find((dd) => dd.id === d.districtId) ?? DISTRICTS[0]; return { x: x.x, y: x.y }; };
+const rankedFor = (s, d) => rankHospitals(publicHospitals(s, now()), pointOf(d), 'ambulance');
+const etaMinutes = (d, hosp) => (/^\d+$/.test(text(d.etaMinutes) ?? '') ? Number(d.etaMinutes) : hosp?.trip?.minutes ?? null);
+const draftReadings = (u, d) => d.vitals.map((r) => ({ ...r, unit: VITAL_TYPES[r.type].unit, enteredBy: u.id }));
+
+function payloadFrom(d, caseId, hosp) {
+  const base = {
+    approxAge: ageValue(d.approxAge), sex: d.sex || null, concern: text(d.concern), history: text(d.history), allergies: text(d.allergies),
+    crewNotes: text(d.crewNotes), receivingRequirements: text(d.receivingRequirements), patientCount: Number(d.patientCount) || 1,
+    interventions: interventionsOf(d), crewAcuity: d.crewAcuity || null, requirements: { ...d.requirements },
+    vitals: d.vitals.map(({ type, value, takenAt }) => ({ type, value, takenAt })),
+  };
+  if (caseId) return { caseId, ...base };
+  const minutes = etaMinutes(d, hosp);
+  return { ...base, destinationHospitalId: d.destinationHospitalId, clientRef: d.clientRef,
+    etaAt: minutes === null ? null : new Date(Date.parse(now()) + minutes * MIN).toISOString() };
+}
+
+// ---------- Sign-in (simulated): pick a crew member; the unit decides which cases are visible ----------
+function renderSignIn(main) {
+  const s = state();
+  const units = [...new Set(values(s, 'users').filter(isCrew).map((u) => u.ambulanceId))].sort();
+  append(main, [
+    h('section', { class: 'hero' }, ambulanceCardIllustration(), h('h1', { text: t('crew.signInTitle') }), h('p', { class: 'lead', text: t('crew.signInBody') })),
+    units.map((unit) => h('section', { class: 'panel', 'aria-labelledby': `unit-${unit}` },
+      h('h2', { id: `unit-${unit}`, text: t('crew.unit', { id: unit }) }),
+      h('div', { class: 'rows' }, unitMembers(s, unit).map((m) => h('button', { type: 'button', class: 'btn big', 'data-focus-key': `signin:${m.id}`,
+        onclick: () => { setCurrentUser(m.id); go('crew'); } }, icon('ambulance', { size: 20 }), t('crew.signInAs', { name: m.name })))))),
+  ]);
+}
+
+const withCrew = (render) => (main, param) => {
+  const u = currentUser();
+  if (!isCrew(u)) { renderSignIn(main); return; }
+  render(main, u, param);
+};
+
+// ---------- Home ----------
+const statusPill = (st) => pill(st === 'canceled' ? 'blocked' : ['arrived', 'handover_complete', 'closed'].includes(st) ? 'ready' : st === 'submitted' ? 'pending' : 'reserved',
+  t(`crewStatus.${st}`), st === 'canceled' ? 'alert' : st === 'submitted' ? 'clock' : 'check');
+const isLive = (c, n) => c.status === 'active' && !['handover_complete', 'closed', 'canceled'].includes(n?.status);
+
+const renderCrewHome = withCrew((main, u) => {
+  const s = state();
+  const n = now();
+  const cases = crewCases(s, u);
+  const current = cases.find((c) => isLive(c, s.arrivalNotices[c.noticeId]));
+  const notes = notificationsFor(s, u);
+  const draftHere = hasDraft(u, null);
+  append(main, [
+    h('section', { class: 'panel unit-card' },
+      ambulanceIllustration(),
+      h('div', {},
+        h('h1', { text: t('crew.unit', { id: u.ambulanceId }) }),
+        h('p', { text: t('crew.crewNames', { names: unitMembers(s, u.ambulanceId).map((m) => m.name).join(', ') }) }),
+        h('p', { class: 'small muted', text: t('crew.signedInAs', { name: u.name }) }))),
+    h('section', { class: 'panel', 'aria-labelledby': 'crew-current' },
+      h('h2', { id: 'crew-current', text: t('crew.currentStatus') }),
+      current ? h('a', { class: 'notice-card', href: `#/crew/case/${current.id}`, 'data-focus-key': `current:${current.id}` },
+        h('span', { class: 'hospital-head' }, h('strong', { class: 'ref', text: current.ref }), statusPill(s.arrivalNotices[current.noticeId].status)),
+        h('span', { text: s.hospitals[current.destinationHospitalId].name })) : h('p', { class: 'muted', text: t('crew.noActive') })),
+    h('div', { class: 'step-actions' },
+      h('a', { class: 'btn big primary', href: '#/crew/new', 'data-focus-key': 'crew-new' }, icon(draftHere ? 'comment' : 'ambulance', { size: 20 }), draftHere ? t('crew.resumeDraft') : t('crew.newCase')),
+      draftHere ? h('button', { type: 'button', class: 'btn big', 'data-focus-key': 'crew-discard', onclick: () => confirmDiscard(u, null) }, t('crew.discardDraft')) : null),
+    h('section', { class: 'panel', 'aria-labelledby': 'crew-notes' },
+      h('h2', { id: 'crew-notes', text: t('crew.notifications') }),
+      notes.length ? h('ul', { class: 'rows' }, notes.slice(0, 8).map((nt) => notifRow(s, u, nt, n))) : h('p', { class: 'muted', text: t('crew.noNotifications') })),
+    h('section', { class: 'panel', 'aria-labelledby': 'crew-cases' },
+      h('h2', { id: 'crew-cases', text: t('crew.cases') }),
+      cases.length ? h('ul', { class: 'rows' }, cases.map((c) => caseRow(s, c, n))) : h('p', { class: 'muted', text: t('crew.noCases') })),
+  ]);
+});
+
+function caseOfRef(s, ref) {
+  if (!ref) return null;
+  if (ref.entity === 'case') return ref.id;
+  if (ref.entity === 'comment') return s.comments[ref.id]?.caseId ?? null;
+  return null;
+}
+function notifRow(s, u, nt, n) {
+  const unread = !nt.readBy.includes(u.id);
+  const caseId = caseOfRef(s, nt.ref);
+  return h('li', {}, h('button', { type: 'button', class: ['notif-item', unread && 'unread'], 'data-focus-key': `crew-notif:${nt.id}`,
+    onclick: () => {
+      if (unread) run('markNotificationRead', { notificationId: nt.id }, { seen: seenVersion('markNotificationRead', { notificationId: nt.id }), silent: true });
+      if (caseId) go(`crew/case/${caseId}`);
+    } },
+  icon(nt.type === 'clarification' ? 'comment' : 'bell', { size: 18 }),
+  h('span', { class: 'grow' },
+    h('span', { class: 'meta' }, unread ? pill('reserved', t('notif.unread'), 'spark') : null, h('time', { datetime: nt.createdAt, text: formatRelative(nt.createdAt, n) })),
+    h('span', { text: tm(nt.message) }))));
+}
+function caseRow(s, c, n) {
+  const nt = s.arrivalNotices[c.noticeId];
+  const open = values(s, 'comments').some((cm) => cm.caseId === c.id && cm.kind === 'clarification' && cm.status === 'open');
+  return h('li', {}, h('a', { class: 'notice-card', href: `#/crew/case/${c.id}`, 'data-focus-key': `crew-case:${c.id}`, 'aria-label': t('notices.open', { ref: c.ref }) },
+    h('span', { class: 'hospital-head' }, h('strong', { class: 'ref', text: c.ref }), statusPill(c.status === 'canceled' ? 'canceled' : nt?.status ?? 'submitted'),
+      open ? pill('pending', t('incoming.clarificationOpen'), 'comment') : null),
+    h('span', { text: s.hospitals[c.destinationHospitalId].name }),
+    h('span', { class: 'small muted', text: `${t('case.eta')}: ${nt?.etaAt ? `${formatTime(nt.etaAt)} (${formatRelative(nt.etaAt, n)})` : t('common.unknown')}` }),
+    h('span', { class: 'small', dir: 'auto', text: c.reportedConcern ?? '' })));
+}
+
+function confirmDiscard(u, caseId) {
+  openDialog({ title: t('crew.discardTitle'), intro: h('p', { text: t('crew.discardBody') }), fields: () => [], submitLabel: t('crew.discardDraft'), danger: true,
+    onSubmit: () => { stopVoice(); discardDraft(u, caseId); requestRender(); if (location.hash !== '#/crew') go(caseId ? `crew/case/${caseId}` : 'crew'); } });
+}
+
+// ---------- New / update form ----------
+let jumpTo = null; // section to scroll to after "Edit" in the preview
+
+const editable = (view) => view.case.status === 'active' && view.patient.location.kind === 'pre_hospital';
+
+const renderCrewForm = withCrew((main, u, caseId = null) => {
+  const s = state();
+  const view = caseId ? crewCaseView(s, caseId, u) : null;
+  if (caseId && !view) { notFound(main); return; }
+  if (view && !editable(view)) {
+    append(main, [note(t('crew.cannotEdit', { ref: view.case.ref }), 'warn'), h('a', { class: 'btn big', href: `#/crew/case/${caseId}` }, t('common.back'))]);
+    return;
+  }
+  const d = loadDraft(u, caseId);
+  const set = (patch, rerender = false) => { saveDraft(u, caseId, patch); if (rerender) requestRender(); };
+  const sent = view?.notice.handover?.vitals ?? [];
+
+  append(main, [
+    h('h1', { text: caseId ? t('crew.formEdit', { ref: view.case.ref }) : t('crew.formNew') }),
+    h('p', { class: 'small muted', role: 'status', text: d.savedAt ? t('crew.draftSaved', { time: formatTime(d.savedAt) }) : t('crew.draftLocal') }),
+    section('notes', t('crew.section.notes'), notesSection(u, caseId, d, set)),
+    section('patient', t('crew.section.patient'),
+      textField({ key: 'approxAge', label: t('crew.age'), d, set, inputmode: 'numeric', hint: t('crew.ageHint') }),
+      selectField({ key: 'sex', label: t('crew.sex'), d, set, options: [['', t('sex.unknown')], ['female', t('sex.female')], ['male', t('sex.male')]] }),
+      selectField({ key: 'patientCount', label: t('crew.patientCount'), d, set, options: Array.from({ length: 10 }, (_, i) => [String(i + 1), String(i + 1)]) })),
+    section('concern', t('crew.section.concern'), textField({ key: 'concern', label: t('crew.concern'), d, set, multiline: true, required: true, onEmptyChange: true })),
+    section('history', t('crew.section.history'),
+      textField({ key: 'history', label: t('crew.history'), d, set }),
+      textField({ key: 'allergies', label: t('crew.allergies'), d, set })),
+    section('vitals', t('crew.section.vitals'), vitalsSection(u, caseId, d, sent, set)),
+    section('acuity', t('crew.section.acuity'), acuitySection(d, set)),
+    section('interventions', t('crew.section.interventions'), interventionsSection(d, set)),
+    section('requirements', t('crew.section.requirements'), requirementsSection(d, set)),
+    section('destination', t('crew.section.destination'), view ? destinationFixed(view) : destinationSection(s, d, set)),
+    h('div', { class: 'sticky-actions' },
+      h('a', { class: 'btn big', href: caseId ? `#/crew/case/${caseId}` : '#/crew' }, t('common.back')),
+      h('a', { class: 'btn big primary', href: caseId ? `#/crew/preview/${caseId}` : '#/crew/preview', 'data-focus-key': 'crew-preview',
+        onclick: () => stopVoice() }, t('crew.preview'))),
+    h('button', { type: 'button', class: 'btn big danger-outline', 'data-focus-key': 'crew-discard-form', onclick: () => confirmDiscard(u, caseId) }, t('crew.discardDraft')),
+  ]);
+  if (jumpTo) {
+    const id = `sec-${jumpTo}`;
+    jumpTo = null;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      el?.scrollIntoView({ block: 'start' });
+      (el?.querySelector('input:not([type=hidden]), select, textarea, button') ?? el)?.focus({ preventScroll: true });
+    });
+  }
+});
+
+function notFound(main) {
+  append(main, [h('h1', { text: t('crew.notFoundTitle') }), emptyState(t('crew.notFound'), 'lock'), h('a', { class: 'btn big', href: '#/crew' }, t('crew.backHome'))]);
+}
+
+function section(id, title, ...children) {
+  return h('section', { class: 'panel crew-section', id: `sec-${id}`, 'aria-labelledby': `sec-${id}-h`, tabindex: -1 },
+    h('h2', { id: `sec-${id}-h`, text: title }), ...children);
+}
+
+function textField({ key, label, d, set, multiline = false, hint = null, inputmode = null, required = false, onEmptyChange = false }) {
+  const id = nextUid(`crew-${key}`);
+  const hintId = hint ? `${id}-hint` : null;
+  const attrs = {
+    id, dir: 'auto', value: d[key] ?? '', required, inputmode, 'aria-describedby': hintId, 'data-preserve': `crew:${key}`, 'data-model-backed': '',
+    oninput: (e) => {
+      const was = !!text(d[key]);
+      set({ [key]: e.target.value });
+      if (onEmptyChange && was !== !!text(e.target.value)) requestRender();
+    },
+  };
+  return h('div', { class: 'field' }, h('label', { for: id }, label, required ? req() : null),
+    multiline ? h('textarea', { ...attrs, rows: 3 }) : h('input', { ...attrs, type: 'text' }),
+    hint ? h('span', { class: 'hint', id: hintId, text: hint }) : null);
+}
+
+function selectField({ key, label, d, set, options }) {
+  const id = nextUid(`crew-${key}`);
+  return h('div', { class: 'field' }, h('label', { for: id, text: label }),
+    h('select', { id, 'data-focus-key': `crew-select:${key}`, onchange: (e) => set({ [key]: e.target.value }, true) },
+      options.map(([v, l]) => h('option', { value: v, selected: String(d[key] ?? '') === v, text: l }))));
+}
+
+// Voice note → "Crew notes". Optional demo extraction SUGGESTS fields; the crew accepts each one. Never vitals.
+const SUGGEST = [
+  { from: 'age', to: 'approxAge', label: 'crew.age', convert: (v) => v.match(/\d{1,3}/)?.[0] ?? null },
+  { from: 'concern', to: 'concern', label: 'crew.concern' },
+  { from: 'conditions', to: 'history', label: 'crew.history' },
+  { from: 'allergies', to: 'allergies', label: 'crew.allergies' },
+  { from: 'patientCount', to: 'patientCount', label: 'crew.patientCount', convert: (v) => (/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 10 ? v : null) },
+];
+function notesSection(u, caseId, d, set) {
+  const id = nextUid('crew-notes');
+  const suggest = () => {
+    const notes = text(loadDraft(u, caseId).crewNotes) ?? '';
+    const r = extractIntake(notes, /[؀-ۿ]/.test(notes) ? 'ar' : lang());
+    const list = SUGGEST.map((m) => {
+      const raw = r.fields[m.from];
+      const value = raw && raw !== 'unknown' ? (m.convert ? m.convert(String(raw)) : String(raw)) : null;
+      return value ? { key: m.to, label: m.label, value, phrase: r.matches[m.from] ?? null } : null;
+    }).filter(Boolean);
+    set({ suggestions: list, accepted: [] }, true);
+  };
+  return [
+    voicePanel({ key: `crew:${caseId ?? 'new'}`, lang: lang() === 'ar' ? 'ar-SA' : 'en-US', label: t('crew.section.notes'), rerender: requestRender,
+      onFinal: (said) => set({ crewNotes: `${loadDraft(u, caseId).crewNotes} ${said}`.trim() }) }),
+    h('div', { class: 'field' },
+      h('label', { for: id, text: t('crew.notesLabel') }),
+      h('textarea', { id, rows: 4, dir: 'auto', value: d.crewNotes, 'data-preserve': 'crew:crewNotes', 'data-model-backed': '', 'aria-describedby': `${id}-hint`,
+        oninput: (e) => set({ crewNotes: e.target.value }) }),
+      h('span', { class: 'hint', id: `${id}-hint`, text: t('crew.notesHint') })),
+    h('button', { type: 'button', class: 'btn big', 'data-focus-key': 'crew-suggest', onclick: suggest }, icon('spark', { size: 20 }), t('crew.suggest')),
+    d.suggestions ? h('div', { class: 'suggestions', role: 'region', 'aria-label': t('crew.suggestions') },
+      h('p', { class: 'small' }, h('span', { class: 'est-tag', text: t('extraction.demo-rule-based') }), t('crew.suggestions')),
+      d.suggestions.length ? h('ul', { class: 'rows' }, d.suggestions.map((sg) => {
+        const done = d.accepted.includes(sg.key);
+        return h('li', { class: 'suggestion' },
+          h('span', { class: 'grow' }, h('strong', { text: `${t(sg.label)}: ` }), h('span', { dir: 'auto', text: sg.value }),
+            sg.phrase ? h('span', { class: 'small muted', dir: 'auto', text: ` — ${t('review.from', { phrase: sg.phrase })}` }) : null),
+          done ? pill('ready', t('crew.accepted'), 'check')
+            : h('button', { type: 'button', class: 'btn primary', 'data-focus-key': `accept:${sg.key}`, 'aria-label': `${t('crew.accept')} — ${t(sg.label)}: ${sg.value}`,
+              onclick: () => set({ [sg.key]: sg.value, accepted: [...loadDraft(u, caseId).accepted, sg.key] }, true) }, t('crew.accept')));
+      })) : h('p', { class: 'small muted', text: t('crew.noSuggestions') })) : null,
+    note(t('crew.neverVitals'), '', 'info'),
+  ];
+}
+
+function vitalsSection(u, caseId, d, sent, set) {
+  const e = d.entry;
+  const def = VITAL_TYPES[e.type];
+  const ids = { type: nextUid('vt-type'), value: nextUid('vt-value'), sys: nextUid('vt-sys'), dia: nextUid('vt-dia'), time: nextUid('vt-time'), err: nextUid('vt-err') };
+  const setEntry = (patch, rerender = false) => set({ entry: { ...loadDraft(u, caseId).entry, ...patch } }, rerender);
+  const add = () => {
+    const cur = loadDraft(u, caseId).entry;
+    const reading = { type: cur.type, value: cur.type === 'BP' ? { systolic: cur.systolic, diastolic: cur.diastolic } : cur.value, takenAt: fromHhmm(cur.time) };
+    const problem = vitalProblem(reading, now()); // the engine's own validation: format and physically possible range only
+    if (problem) {
+      setEntry({ error: problem }, true);
+      requestAnimationFrame(() => document.querySelector('[data-preserve="crew:vt-value"], [data-preserve="crew:vt-sys"]')?.focus());
+      return;
+    }
+    set({ vitals: [...loadDraft(u, caseId).vitals, { ...reading, localId: `r-${Date.now().toString(36)}` }], entry: { ...blankEntry(), type: cur.type } }, true);
+    toast(t('crew.readingAdded'), 'success', 2500);
+  };
+  const remove = (localId) => set({ vitals: loadDraft(u, caseId).vitals.filter((r) => r.localId !== localId) }, true);
+  const numberInput = (id, key, label) => h('div', { class: 'field' }, h('label', { for: id, text: label }),
+    h('span', { class: 'with-unit' },
+      h('input', { id, type: 'text', inputmode: 'decimal', autocomplete: 'off', value: e[key], 'data-preserve': `crew:vt-${key === 'value' ? 'value' : key === 'systolic' ? 'sys' : 'dia'}`, 'data-model-backed': '',
+        'aria-invalid': e.error ? 'true' : null, 'aria-describedby': e.error ? ids.err : null, oninput: (ev) => setEntry({ [key]: ev.target.value, error: null }),
+        onkeydown: (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); add(); } } }),
+      def.unit ? h('span', { class: 'unit', dir: 'ltr', text: def.unit }) : null));
+  const all = [...sent, ...draftReadings(u, d)];
+  return [
+    h('div', { class: 'vital-entry' },
+      h('div', { class: 'field' }, h('label', { for: ids.type, text: t('crew.vitalType') }),
+        h('select', { id: ids.type, 'data-focus-key': 'vt-type', onchange: (ev) => setEntry({ type: ev.target.value, value: '', systolic: '', diastolic: '', error: null }, true) },
+          VITAL_TYPE_KEYS.map((k) => h('option', { value: k, selected: k === e.type, text: `${vitalLabel(k)}${VITAL_TYPES[k].unit ? ` (${VITAL_TYPES[k].unit})` : ''}` })))),
+      e.type === 'BP'
+        ? h('div', { class: 'pair' }, numberInput(ids.sys, 'systolic', t('crew.systolic')), numberInput(ids.dia, 'diastolic', t('crew.diastolic')))
+        : numberInput(ids.value, 'value', t('crew.vitalValue')),
+      h('div', { class: 'field' }, h('label', { for: ids.time, text: t('crew.vitalTime') }),
+        h('input', { id: ids.time, type: 'time', value: e.time, 'data-preserve': 'crew:vt-time', 'data-model-backed': '', oninput: (ev) => setEntry({ time: ev.target.value, error: null }) })),
+      e.error ? h('p', { class: 'form-error', id: ids.err, role: 'alert', text: tm(e.error) }) : null,
+      h('button', { type: 'button', class: 'btn big primary', 'data-focus-key': 'vt-add', onclick: add }, icon('check', { size: 20 }), t('crew.addReading'))),
+    h('h3', { class: 'small muted', text: t('crew.readings') }),
+    vitalsTable(all, { extraHead: h('span', { class: 'sr-only', text: t('crew.readingState') }), extra: (r) => (r.localId
+      ? [pill('pending', t('crew.newReading'), 'spark'), h('button', { type: 'button', class: 'btn small icon-btn', 'aria-label': t('crew.removeReading', { type: vitalLabel(r.type), time: formatTime(r.takenAt) }),
+        'data-focus-key': `vt-remove:${r.localId}`, onclick: () => remove(r.localId) }, icon('close', { size: 16 }))]
+      : pill('ready', t('crew.sentReading'), 'check')) }),
+  ];
+}
+
+function acuitySection(d, set) {
+  const name = nextUid('acuity');
+  const opt = (value, label) => h('label', { class: ['seg-option', d.crewAcuity === value && 'on'] },
+    h('input', { type: 'radio', name, value, checked: d.crewAcuity === value, 'data-focus-key': `acuity:${value || 'none'}`, onchange: () => set({ crewAcuity: value }, true) }),
+    h('span', { text: label }));
+  return [
+    h('fieldset', { class: 'seg' }, h('legend', { class: 'sr-only', text: t('crew.section.acuity') }),
+      ACUITY.map((a) => opt(a, t(`acuity.${a}`))), opt('', t('acuity.none'))),
+    h('p', { class: 'small muted', text: t('crew.acuityHint') }),
+  ];
+}
+
+function interventionsSection(d, set) {
+  const id = nextUid('crew-int');
+  return [
+    h('p', { class: 'small muted', text: t('crew.interventionsHint') }),
+    h('div', { class: 'chip-toggles', role: 'group', 'aria-label': t('crew.section.interventions') }, INTERVENTION_CHIPS.map((c) => {
+      const on = d.chips.includes(c);
+      return h('button', { type: 'button', class: ['chip-toggle', on && 'on'], 'aria-pressed': String(on), 'data-focus-key': `chip:${c}`,
+        onclick: () => set({ chips: on ? d.chips.filter((x) => x !== c) : [...d.chips, c] }, true) }, on ? icon('check', { size: 16 }) : null, t(`intervention.${c}`));
+    })),
+    h('div', { class: 'field' }, h('label', { for: id, text: t('crew.interventionsText') }),
+      h('textarea', { id, rows: 2, dir: 'auto', value: d.interventionsText, 'data-preserve': 'crew:interventionsText', 'data-model-backed': '',
+        oninput: (e) => set({ interventionsText: e.target.value }) })),
+  ];
+}
+
+function requirementsSection(d, set) {
+  const id = nextUid('crew-req');
+  return [
+    h('div', { class: 'rows' }, REQUIREMENT_KEYS.map((k) => {
+      const cid = nextUid(`req-${k}`);
+      return h('div', { class: 'confirm-row' },
+        h('input', { type: 'checkbox', id: cid, checked: !!d.requirements[k], 'data-focus-key': `req:${k}`,
+          onchange: (e) => set({ requirements: { ...d.requirements, [k]: e.target.checked } }, true) }),
+        h('label', { for: cid, text: t(`req.${k}`) }));
+    })),
+    h('div', { class: 'field' }, h('label', { for: id, text: t('req.other') }),
+      h('input', { id, type: 'text', dir: 'auto', value: d.receivingRequirements, 'data-preserve': 'crew:receivingRequirements', 'data-model-backed': '',
+        oninput: (e) => set({ receivingRequirements: e.target.value }) })),
+  ];
+}
+
+function destinationFixed(view) {
+  return [h('p', {}, h('strong', { text: view.destination.name })), h('p', { class: 'small muted', text: t('crew.destinationFixed') })];
+}
+
+function destinationSection(s, d, set) {
+  const n = now();
+  const list = rankedFor(s, d);
+  const selected = list.find((x) => x.id === d.destinationHospitalId) ?? null;
+  const districtId = nextUid('crew-district');
+  const etaId = nextUid('crew-eta');
+  const select = (id) => set({ destinationHospitalId: id, etaMinutes: '' }, true);
+  return [
+    h('div', { class: 'field' }, h('label', { for: districtId, text: t('crew.location') }),
+      h('select', { id: districtId, 'data-focus-key': 'crew-district', onchange: (e) => set({ districtId: e.target.value, etaMinutes: '' }, true) },
+        DISTRICTS.map((x) => h('option', { value: x.id, selected: x.id === d.districtId, text: t(`district.${x.id}`) }))),
+      h('span', { class: 'hint', text: t('crew.locationHint') })),
+    h('div', { class: 'map-wrap' }, cityMap({ hospitals: list, point: pointOf(d), pointLabel: t('crew.ambulanceHere'), selectedId: d.destinationHospitalId, onSelect: select }),
+      h('p', { class: 'small muted', text: `${t('city.name')} · ${t('hospitals.simulated')}` })),
+    h('ul', { class: 'hospital-list', 'aria-label': t('crew.section.destination') }, list.map((x) => hospitalItem(x, x.id === d.destinationHospitalId, 'ambulance', select, n))),
+    selected ? h('div', { class: 'field' }, h('label', { for: etaId, text: t('crew.eta') }),
+      h('span', { class: 'with-unit' },
+        h('input', { id: etaId, type: 'text', inputmode: 'numeric', value: d.etaMinutes || String(selected.trip.minutes), 'data-preserve': 'crew:eta', 'data-model-backed': '',
+          'aria-describedby': `${etaId}-hint`, oninput: (e) => set({ etaMinutes: e.target.value }) }),
+        h('span', { class: 'unit', text: t('crew.minutesUnit') })),
+      h('span', { class: 'hint', id: `${etaId}-hint`, text: t('crew.etaHint') })) : h('p', { class: 'small muted', text: t('crew.missingDestination') }),
+  ];
+}
+
+// ---------- Preview: the card exactly as the ER will see it ----------
+const renderCrewPreview = withCrew((main, u, caseId = null) => {
+  const s = state();
+  const n = now();
+  const view = caseId ? crewCaseView(s, caseId, u) : null;
+  if (caseId && !view) { notFound(main); return; }
+  if (view && !editable(view)) { go(`crew/case/${caseId}`); return; }
+  const d = loadDraft(u, caseId);
+  const hosp = view ? null : rankedFor(s, d).find((x) => x.id === d.destinationHospitalId) ?? null;
+  const payload = payloadFrom(d, caseId, hosp);
+  const data = {
+    ref: view?.case.ref ?? null, unitId: u.ambulanceId, destinationName: view ? view.destination.name : hosp?.name ?? '', etaAt: view ? view.notice.etaAt : payload.etaAt,
+    approxAge: payload.approxAge, sex: payload.sex, patientCount: payload.patientCount, concern: payload.concern, history: payload.history, allergies: payload.allergies,
+    vitals: [...(view?.notice.handover?.vitals ?? []), ...draftReadings(u, d)], crewAcuity: payload.crewAcuity ? { level: payload.crewAcuity, source: 'crew' } : null,
+    interventions: payload.interventions, requirements: payload.requirements, receivingRequirements: payload.receivingRequirements, crewNotes: payload.crewNotes,
+  };
+  const why = !payload.concern ? t('crew.missingConcern') : !view && !hosp ? t('crew.missingDestination') : null;
+  const verdict = why ? { ok: false } : check('submitArrival', payload);
+  const reason = why ?? (verdict.ok ? null : t('common.whyDisabled', { reason: verdict.reason }));
+  const seen = seenVersion('submitArrival', payload);
+  const editRoute = caseId ? `crew/edit/${caseId}` : 'crew/new';
+  append(main, [
+    h('h1', { text: view ? t('crew.previewUpdate', { ref: view.case.ref }) : t('crew.previewTitle') }),
+    h('p', { class: 'muted', text: t('crew.erSees') }),
+    handoverCard(data, { now: n, onEdit: (sec) => { jumpTo = sec; go(editRoute); } }),
+    h('div', { class: 'sticky-actions' },
+      h('a', { class: 'btn big', href: `#/${editRoute}` }, t('crew.edit')),
+      h('button', { type: 'button', class: 'btn big primary', disabled: !!reason, 'aria-describedby': reason ? 'send-why' : null, 'data-focus-key': 'crew-send',
+        onclick: () => send(u, caseId, payload, seen) }, icon('check', { size: 20 }), view ? t('crew.sendUpdate') : t('crew.send'))),
+    reason ? h('p', { class: 'small muted', id: 'send-why', text: reason }) : null,
+  ]);
+});
+
+function send(u, caseId, payload, seen) {
+  const res = run('submitArrival', payload, { seen, silent: true });
+  if (!res.ok) return;
+  stopVoice();
+  discardDraft(u, caseId);
+  toast(t(caseId ? 'crew.updateSent' : 'crew.sent'), 'success');
+  go(`crew/case/${res.result.caseId}`);
+}
+
+// ---------- Case view after sending ----------
+const renderCrewCase = withCrew((main, u, caseId) => {
+  const s = state();
+  const n = now();
+  const view = crewCaseView(s, caseId, u);
+  if (!view) { notFound(main); return; }
+  const { case: c, notice: nt } = view;
+  const st = c.status === 'canceled' ? 'canceled' : nt.status;
+  const live = isLive(c, nt);
+  const preHospital = view.patient.location.kind === 'pre_hospital';
+  append(main, [
+    h('a', { class: 'btn', href: '#/crew' }, t('crew.backHome')),
+    h('h1', { text: t('crew.caseTitle', { ref: c.ref }) }),
+    h('section', { class: 'panel' },
+      h('dl', { class: 'facts big-facts' },
+        h('dt', { text: t('case.status') }), h('dd', {}, statusPill(st)),
+        h('dt', { text: t('case.destination') }), h('dd', { text: view.destination.name }),
+        h('dt', { text: t('case.eta') }), h('dd', { text: nt.etaAt ? `${formatTime(nt.etaAt)} (${formatRelative(nt.etaAt, n)}) · ${t('incoming.etaSimulated')}` : t('common.unknown') }),
+        h('dt', { text: t('crew.section.acuity') }), h('dd', { text: crewAcuityText(c.crewAcuity) })),
+      st === 'canceled' ? h('p', { class: 'small', text: t('case.canceledReason', { reason: c.cancelReason ?? '' }) }) : progress(st),
+      routeStrip(view, n)),
+    h('section', { class: 'panel', 'aria-labelledby': 'crew-ack' },
+      h('h2', { id: 'crew-ack', text: t('crew.ack') }),
+      view.acknowledged ? h('p', {}, icon('check', { size: 18 }), ' ', t('crew.ackBy', { time: formatTime(view.acknowledged.at), name: userName(view.acknowledged.by) }))
+        : h('p', {}, pill('pending', t('crew.notAcked'), 'clock')),
+      view.reservation ? h('p', { class: 'small', text: t('crew.reservation', { hospital: view.destination.name }) }) : null),
+    clarificationThread(view),
+    live && preHospital ? h('section', { class: 'panel crew-actions', 'aria-labelledby': 'crew-act' },
+      h('h2', { id: 'crew-act', text: t('drawer.actions') }),
+      ['submitted', 'acknowledged'].includes(nt.status) ? actionButton({ action: 'updateCrewStatus', payload: { caseId: c.id, status: 'en_route' }, label: t('crew.markEnRoute'), kind: 'primary', iconName: 'ambulance', big: true }) : null,
+      nt.status === 'en_route' ? actionButton({ action: 'updateCrewStatus', payload: { caseId: c.id, status: 'arrived' }, label: t('crew.markArrived'), kind: 'primary', iconName: 'hospital', big: true }) : null,
+      actionButton({ action: 'updateETA', payload: { caseId: c.id }, label: t('case.updateEta'), iconName: 'clock', big: true, open: (seen) => openEta(view, seen) }),
+      h('a', { class: 'btn big', href: `#/crew/edit/${c.id}`, 'data-focus-key': 'crew-edit' }, icon('comment', { size: 20 }), hasDraft(u, c.id) ? t('crew.resumeUpdate') : t('crew.editResend')),
+      actionButton({ action: 'changeDestination', payload: { caseId: c.id }, label: t('crew.changeDestination'), iconName: 'transfer', big: true, open: (seen) => openDestination(view, seen) }),
+      actionButton({ action: 'cancelCase', payload: { caseId: c.id }, label: t('crew.cancel'), kind: 'danger', big: true, open: (seen) => openCancel(view, seen) })) : null,
+    h('section', { class: 'panel' },
+      h('h2', { text: t('case.timeline') }),
+      h('ol', { class: 'timeline' }, [...nt.timeline].reverse().map((e) => h('li', {},
+        h('time', { datetime: e.at, text: formatTime(e.at) }), h('span', { dir: 'auto', text: tm(e.detail) }))))),
+  ]);
+});
+
+function progress(st) {
+  const at = Math.max(0, PROGRESS.indexOf(st === 'closed' ? 'handover_complete' : st));
+  return h('ol', { class: 'progress', 'aria-label': t('case.status') }, PROGRESS.map((x, i) => h('li', {
+    class: [i < at && 'done', i === at && 'current'], 'aria-current': i === at ? 'step' : null,
+  }, icon(i <= at ? 'check' : 'clock', { size: 16 }), t(`crewStatus.${x}`))));
+}
+
+// Simulated route strip: the marker moves from the scene toward the destination while en route (CSS animation over the
+// time left to the ETA); with reduced motion it is drawn at its current position and does not move.
+function routeStrip(view, n) {
+  const nt = view.notice;
+  const st = view.case.status === 'canceled' ? 'canceled' : nt.status;
+  const start = nt.timeline.filter((e) => e.event === 'en_route').at(-1)?.at ?? nt.submittedAt;
+  const end = nt.etaAt;
+  let p = 0;
+  if (['arrived', 'handover_complete', 'closed'].includes(st)) p = 1;
+  else if (st === 'en_route' && end) p = Math.min(0.95, Math.max(0, (Date.parse(n) - Date.parse(start)) / Math.max(MIN, Date.parse(end) - Date.parse(start))));
+  const remaining = st === 'en_route' && end ? Math.max(0, (Date.parse(end) - Date.parse(n)) / 1000) : 0;
+  const moving = remaining > 0;
+  return h('figure', { class: 'route-strip' },
+    h('div', { class: 'track', style: `--p: ${p.toFixed(3)}; --dur: ${Math.round(remaining)}s`, 'aria-hidden': 'true' },
+      h('span', { class: 'road' }),
+      h('span', { class: 'end' }, icon('hospital', { size: 22 })),
+      h('span', { class: ['amb', moving && 'moving'] }, ambulanceIllustration())),
+    h('figcaption', { class: 'small muted' }, t('crew.route', { hospital: view.destination.shortName ?? view.destination.name }), ' ',
+      h('span', { class: 'chip', text: t('hospitals.simulated') }), ' · ', t(`crewStatus.${st}`)));
+}
+
+function clarificationThread(view) {
+  const list = view.clarifications;
+  return h('section', { class: 'panel', 'aria-labelledby': 'crew-thread' },
+    h('h2', { id: 'crew-thread', text: t('crew.thread') }),
+    list.length ? h('ol', { class: 'rows thread' }, list.map((q) => h('li', { class: 'thread-item' },
+      h('p', { class: 'small muted' }, h('time', { datetime: q.createdAt, text: formatTime(q.createdAt) }), ` · ${userName(q.authorId)}`),
+      h('p', { class: 'question', dir: 'auto' }, icon('comment', { size: 16 }), ' ', q.body),
+      q.status === 'answered'
+        ? h('p', { class: 'answer', dir: 'auto' }, h('strong', { text: `${t('crew.yourReply')}: ` }), q.answer, h('span', { class: 'small muted', text: ` · ${userName(q.answeredBy)} ${formatTime(q.answeredAt)}` }))
+        : replyBox(q)))) : h('p', { class: 'muted', text: t('crew.noThread') }));
+}
+
+function replyBox(q) {
+  const id = nextUid('reply');
+  const verdict = check('respondClarification', { commentId: q.id }, { permissionOnly: true });
+  const submit = () => {
+    const el = document.getElementById(id);
+    const res = run('respondClarification', { commentId: q.id, answer: el?.value ?? '' }, { seen: q.version, silent: true });
+    if (res.ok) toast(t('done.respondClarification'), 'success');
+  };
+  return h('div', { class: 'reply' },
+    h('div', { class: 'field' }, h('label', { for: id, text: t('crew.replyLabel') }),
+      h('textarea', { id, rows: 2, dir: 'auto', 'data-preserve': `reply:${q.id}`, disabled: !verdict.ok })),
+    h('button', { type: 'button', class: 'btn big primary', disabled: !verdict.ok, 'data-focus-key': `reply-send:${q.id}`, onclick: submit }, t('case.reply')),
+    verdict.ok ? null : h('p', { class: 'small muted', text: t('common.whyDisabled', { reason: verdict.reason }) }));
+}
+
+function openEta(view, seen) {
+  openDialog({ title: t('eta.title', { ref: view.case.ref }), submitLabel: t('case.updateEta'),
+    fields: () => [
+      field({ label: t('eta.minutes'), name: 'minutes', type: 'select', required: true, value: '10',
+        options: [2, 5, 10, 15, 20, 30, 45, 60].map((m) => ({ value: String(m), label: t('minutes.option', { n: m }) })) }),
+      field({ label: t('eta.reason'), name: 'reason', type: 'text' }),
+    ],
+    onSubmit: (d) => run('updateETA', { caseId: view.case.id, etaAt: new Date(Date.parse(now()) + Number(d.minutes) * MIN).toISOString(), reason: d.reason || undefined },
+      { seen, quiet: true }) });
+}
+
+function openDestination(view, seen) {
+  const s = state();
+  const others = values(s, 'hospitals').filter((x) => x.id !== view.case.destinationHospitalId);
+  openDialog({ title: t('dest.title', { ref: view.case.ref }), submitLabel: t('crew.changeDestination'),
+    intro: h('p', { class: 'notice warn' }, icon('info', { size: 18 }), h('span', { text: t('dest.notifyOld', { hospital: view.destination.name }) })),
+    fields: () => [
+      field({ label: t('dest.hospital'), name: 'toHospitalId', type: 'select', required: true, value: '',
+        options: [{ value: '', label: t('dest.choose') }, ...others.map((x) => ({ value: x.id, label: x.name }))] }),
+      field({ label: t('dest.reason'), name: 'reason', type: 'textarea', required: true, hint: t('common.reasonHint'), maxlength: 300 }),
+    ],
+    onSubmit: (d) => run('changeDestination', { caseId: view.case.id, toHospitalId: d.toHospitalId, reason: d.reason }, { seen, quiet: true }) });
+}
+
+function openCancel(view, seen) {
+  openDialog({ title: t('cancelNotice.title', { ref: view.case.ref }), submitLabel: t('crew.cancel'), danger: true,
+    fields: () => [field({ label: t('cancelNotice.reason'), name: 'reason', type: 'textarea', required: true, hint: t('common.reasonHint'), maxlength: 300 })],
+    onSubmit: (d) => run('cancelCase', { caseId: view.case.id, reason: d.reason }, { seen, quiet: true }) });
+}
+
+return { renderCrewHome, renderCrewForm, renderCrewPreview, renderCrewCase };
+})();
+
+// ---- ui/admin.js ----
+__sila_modules["ui/admin.js"] = (() => {
+// Administrator page (read-only for the demo): who has which role where, and the audit log in plain language.
+// Admins cannot perform clinical actions — the engine rejects them (permissions.js) and every clinical button shows why.
+
+const { values } = __sila_modules["data.js"];
+const { can } = __sila_modules["permissions.js"];
+const { ACTION_NAMES } = __sila_modules["actions.js"];
+const { auditLog } = __sila_modules["selectors.js"];
+const { t, tm, formatDateTime } = __sila_modules["i18n.js"];
+const { h, append, nextUid } = __sila_modules["ui/dom.js"];
+const { icon } = __sila_modules["ui/icons.js"];
+const { state, currentUser, requestRender } = __sila_modules["ui/core.js"];
+const { emptyState, panel, roleLabel, userName } = __sila_modules["ui/components.js"];
+const { changeText } = __sila_modules["ui/handover.js"];
+
+const filters = { userId: '', record: '', action: '', from: '', to: '' };
+
+// A record filter accepts a reference people read (SL-2041, TR-…, ER-10) as well as a raw id.
+function recordIdFor(s, q) {
+  const v = q.trim();
+  if (!v) return null;
+  const byRef = values(s, 'cases').find((c) => c.ref.toLowerCase() === v.toLowerCase())
+    ?? values(s, 'transferRequests').find((x) => x.ref?.toLowerCase() === v.toLowerCase())
+    ?? values(s, 'beds').find((b) => b.label.toLowerCase() === v.toLowerCase());
+  return byRef?.id ?? v;
+}
+const localIso = (v) => (v ? new Date(v).toISOString() : null); // <input type="datetime-local"> is local time
+
+function renderAdmin(main) {
+  const s = state();
+  const u = currentUser();
+  const allowed = can(u, 'viewAuditLog', null);
+  if (!allowed.allowed) { append(main, [h('h1', { text: t('admin.title') }), emptyState(tm(allowed.reason), 'lock')]); return; }
+  const users = values(s, 'users').filter((x) => !x.shared && x.role !== 'citizen')
+    .sort((a, b) => (a.hospitalId ?? '~').localeCompare(b.hospitalId ?? '~') || roleLabel(a.role).localeCompare(roleLabel(b.role)) || a.name.localeCompare(b.name));
+  const entries = auditLog(s, { userId: filters.userId || null, recordId: recordIdFor(s, filters.record), action: filters.action || null,
+    from: localIso(filters.from), to: localIso(filters.to) });
+  const set = (k) => (e) => { filters[k] = e.target.value; requestRender(); };
+  const ids = { user: nextUid('af-user'), record: nextUid('af-record'), action: nextUid('af-action'), from: nextUid('af-from'), to: nextUid('af-to') };
+
+  append(main, [
+    h('h1', { text: t('admin.title') }),
+    h('p', { class: 'notice warn' }, icon('lock', { size: 18 }), h('span', { text: t('admin.backendNote') })),
+    panel(t('admin.users'), 'staff', users.length,
+      h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
+        h('thead', {}, h('tr', {}, ['admin.colName', 'admin.colRole', 'admin.colHospital', 'admin.colDept'].map((k) => h('th', { scope: 'col', text: t(k) })))),
+        h('tbody', {}, users.map((x) => h('tr', {},
+          h('th', { scope: 'row', text: x.name }),
+          h('td', { text: roleLabel(x.role) }),
+          h('td', { text: x.hospitalId ? s.hospitals[x.hospitalId]?.name ?? '' : t('admin.noHospital') }),
+          h('td', { text: x.ambulanceId ? t('crew.unit', { id: x.ambulanceId }) : x.department ? t(`dept.${x.department}`) : t('user.hospitalWide') }))))))),
+    panel(t('admin.audit'), 'history', entries.length,
+      h('div', { class: 'filters' },
+        h('div', { class: 'field' }, h('label', { for: ids.user, text: t('admin.filterUser') }),
+          h('select', { id: ids.user, 'data-focus-key': 'af-user', onchange: set('userId') },
+            h('option', { value: '', text: t('admin.any') }),
+            users.map((x) => h('option', { value: x.id, selected: filters.userId === x.id, text: `${x.name} — ${roleLabel(x.role)}` })))),
+        h('div', { class: 'field' }, h('label', { for: ids.record, text: t('admin.filterRecord') }),
+          h('input', { id: ids.record, type: 'text', value: filters.record, 'data-preserve': 'af-record', 'data-model-backed': '', placeholder: 'SL-2041', oninput: set('record') })),
+        h('div', { class: 'field' }, h('label', { for: ids.action, text: t('admin.filterAction') }),
+          h('select', { id: ids.action, 'data-focus-key': 'af-action', onchange: set('action') },
+            h('option', { value: '', text: t('admin.any') }),
+            ACTION_NAMES().map((a) => h('option', { value: a, selected: filters.action === a, text: t(`auditAction.${a}`) })))),
+        h('div', { class: 'field' }, h('label', { for: ids.from, text: t('admin.filterFrom') }),
+          h('input', { id: ids.from, type: 'datetime-local', value: filters.from, 'data-focus-key': 'af-from', onchange: set('from') })),
+        h('div', { class: 'field' }, h('label', { for: ids.to, text: t('admin.filterTo') }),
+          h('input', { id: ids.to, type: 'datetime-local', value: filters.to, 'data-focus-key': 'af-to', onchange: set('to') })),
+        h('button', { type: 'button', class: 'btn', 'data-focus-key': 'af-clear', onclick: () => { Object.assign(filters, { userId: '', record: '', action: '', from: '', to: '' }); requestRender(); } }, t('admin.clear'))),
+      h('p', { class: 'small muted', role: 'status', text: t('admin.entries', { n: entries.length }) }),
+      entries.length ? h('ol', { class: 'audit-list' }, entries.slice(0, 200).map((e) => auditRow(s, e))) : emptyState(t('admin.noEntries'), 'history')),
+  ]);
+}
+
+function auditRow(s, e) {
+  const caseRef = e.refs?.map((r) => (r.entity === 'case' ? s.cases[r.id] : null)).find(Boolean);
+  const vitals = caseRef ? s.arrivalNotices[caseRef.noticeId]?.handover?.vitals ?? [] : [];
+  return h('li', { class: 'audit-row' },
+    h('time', { datetime: e.at, text: formatDateTime(e.at) }),
+    h('div', {},
+      h('p', {}, h('strong', { text: tm(e.summary) })),
+      h('p', { class: 'small muted', text: `${e.actorRole ? t('admin.by', { name: e.actorName ?? userName(e.actorId), role: roleLabel(e.actorRole) }) : e.actorName ?? userName(e.actorId)} · ${t(`auditAction.${e.action}`)}` }),
+      e.reason ? h('p', { class: 'small', dir: 'auto', text: t('admin.reason', { text: e.reason }) }) : null,
+      Array.isArray(e.details) && e.details.length ? h('p', { class: 'small', text: t('admin.changes', { list: e.details.map((ch) => changeText(ch, vitals)).join('; ') }) }) : null));
+}
+
+return { renderAdmin };
 })();
 
 // ---- ui/notices.js ----
@@ -6485,7 +7965,7 @@ __sila_modules["ui/placement.js"] = (() => {
 // Placement flow: reserve (with expiry) → extend/release with reason → confirm placement.
 // Each bed or patient option is checked by the engine; unusable ones are disabled and say why.
 
-const { compatibilityError } = __sila_modules["readiness.js"];
+const { compatibilityError, REQUIREMENT_KEYS } = __sila_modules["readiness.js"];
 const { t, tm } = __sila_modules["i18n.js"];
 const { erBeds, selectIncoming, selectAwaitingTriage, selectWaiting, bedBoardStatus } = __sila_modules["selectors.js"];
 const { h, nextUid } = __sila_modules["ui/dom.js"];
@@ -6493,9 +7973,8 @@ const { icon } = __sila_modules["ui/icons.js"];
 const { openDialog, field, run, state, now, check, canSeePatient } = __sila_modules["ui/core.js"];
 const { forecastLine, pill } = __sila_modules["ui/components.js"];
 
-const REQS = ['isolation', 'ventilator'];
 const reqText = (requirements) => {
-  const list = REQS.filter((k) => requirements?.[k]).map((k) => t(`req.${k}`));
+  const list = REQUIREMENT_KEYS.filter((k) => requirements?.[k]).map((k) => t(`req.${k}`));
   return t('placement.requirements', { list: list.length ? list.join(', ') : t('incoming.noRequirements') });
 };
 
@@ -6596,7 +8075,8 @@ const { erDashboard, erBeds, ER_TILE_KEYS, selectRecentlyCanceled } = __sila_mod
 const { t, tm, formatTime, formatRelative } = __sila_modules["i18n.js"];
 const { h, append } = __sila_modules["ui/dom.js"];
 const { icon, ambulanceIllustration } = __sila_modules["ui/icons.js"];
-const { ctx, state, now, currentUser, canSeePatient, requestRender } = __sila_modules["ui/core.js"];
+const { ctx, state, now, currentUser, canSeePatient, requestRender, viewedRevision } = __sila_modules["ui/core.js"];
+const { acuityLabel } = __sila_modules["ui/handover.js"];
 const { pill, emptyState, panel, actionButton, uiButton, userName, roleLabel, highlightClass } = __sila_modules["ui/components.js"];
 const { bedCard, tileGrid, inTransitPanel, openDrawer } = __sila_modules["ui/beds.js"];
 const { openClarify, openAssignCoordinator, openCancelCase, openTriage, openExtend, openRelease } = __sila_modules["ui/forms.js"];
@@ -6668,7 +8148,7 @@ function canceledCard(s, c, n) {
 }
 
 const reqChips = (c, notice) => {
-  const chips = ['isolation', 'ventilator'].filter((k) => c.requirements?.[k]).map((k) => h('span', { class: 'chip', text: t(`req.${k}`) }));
+  const chips = ['isolation', 'ventilator', 'monitor'].filter((k) => c.requirements?.[k]).map((k) => h('span', { class: 'chip', text: t(`req.${k}`) }));
   const crewText = notice?.handover?.receivingRequirements;
   if (!chips.length && !crewText) return t('incoming.noRequirements');
   return h('span', {}, ...chips, crewText ? h('span', { class: 'small', text: ` ${crewText}` }) : null);
@@ -6690,6 +8170,8 @@ function incomingCard(s, c, n) {
   const showP = canSeePatient(c.destinationHospitalId);
   const openClar = values(s, 'comments').some((cm) => cm.caseId === c.id && cm.kind === 'clarification' && cm.status === 'open');
   const anyBed = erBeds(s, c.destinationHospitalId)[0];
+  // Fields changed since this coordinator last opened the handover (revision seen is kept per user in this browser).
+  const updated = !!notice?.handover && notice.revision > viewedRevision(c.id);
   return h('article', { class: ['card', highlightClass('case', c.id)], 'aria-label': c.ref },
     h('div', { class: 'card-head' },
       amb ? ambulanceIllustration() : h('span', { class: 'chip' }, icon('person', { size: 20 })),
@@ -6697,6 +8179,7 @@ function incomingCard(s, c, n) {
         h('span', { class: 'small muted', text: amb ? t('source.ambulanceId', { id: amb.ambulanceId }) : t(`source.${c.source}`) })),
       h('div', { class: 'end' },
         pill('neutral', t(`notice.${notice?.status ?? 'submitted'}`), 'info'),
+        updated ? pill('updated', t('incoming.handoverUpdated'), 'spark') : null,
         openClar ? pill('pending', t('incoming.clarificationOpen'), 'comment') : null,
         h('span', { class: 'chip', title: notice?.updatedAt }, icon('clock', { size: 14 }), t('incoming.updated', { rel: formatRelative(notice?.updatedAt ?? c.updatedAt, n) })))),
     h('p', { class: 'concern' }, h('span', { class: 'label', text: `${t('incoming.reported')} · ${t('incoming.unverified')}` }),
@@ -6706,7 +8189,7 @@ function incomingCard(s, c, n) {
         notice?.etaAt ? t('incoming.etaValue', { time: formatTime(notice.etaAt), rel: formatRelative(notice.etaAt, n) }) : t('incoming.etaUnknown'),
         h('span', { class: 'small muted', text: ` (${t('incoming.etaSimulated')})` })),
       h('dt', { text: t('incoming.acuity') }), h('dd', {}, acuityText(c),
-        c.crewAcuity ? h('span', { class: 'small muted', text: ` · ${t('incoming.crewAcuity', { level: c.crewAcuity.level })}` }) : null),
+        c.crewAcuity ? h('span', { class: 'small muted', text: ` · ${t('incoming.crewAcuity', { level: acuityLabel(c.crewAcuity.level) })}` }) : null),
       h('dt', { text: t('incoming.ack') }), h('dd', {}, notice?.acknowledged
         ? t('incoming.acked', { time: formatTime(notice.acknowledged.at), name: userName(notice.acknowledged.by) })
         : pill('pending', t('incoming.notAcked'), 'clock')),
@@ -7076,7 +8559,8 @@ const { bedBoardStatus, careTasksForPatient, bedWorkTasks } = __sila_modules["se
 const { t, tm, formatTime, formatRelative } = __sila_modules["i18n.js"];
 const { h, clear } = __sila_modules["ui/dom.js"];
 const { icon, ambulanceIllustration } = __sila_modules["ui/icons.js"];
-const { ctx, state, now, canSeePatient, closeDrawer } = __sila_modules["ui/core.js"];
+const { ctx, state, now, canSeePatient, closeDrawer, viewedRevision, markViewed } = __sila_modules["ui/core.js"];
+const { handoverCard, handoverData, whatChanged, acuityLabel } = __sila_modules["ui/handover.js"];
 const { pill, emptyState, actionButton, uiButton, forecastLine, blockerList, historyList, commentsSection, userName } = __sila_modules["ui/components.js"];
 const { taskRow } = __sila_modules["ui/taskui.js"];
 const { openFault, openStaffingGap, openConfirmStaffing, openEquipmentCheck, openResolve, openReopen, openExtend, openRelease, openClarify, openAssignCoordinator, openCancelCase, openTriage, openDisposition, openTransferRequest } = __sila_modules["ui/forms.js"];
@@ -7244,6 +8728,9 @@ function caseDrawer(s, c) {
   const res = activeReservationForCase(s, c.id, n);
   const tr = activeTransferForCase(s, c.id);
   const clarifications = values(s, 'comments').filter((cm) => cm.caseId === c.id && cm.kind === 'clarification');
+  // "What changed": updates after the revision this user had seen when the drawer opened are marked new.
+  if (ctx.ui.viewSnapshot?.caseId !== c.id) ctx.ui.viewSnapshot = { caseId: c.id, revision: viewedRevision(c.id) };
+  if (notice?.handover && showP) markViewed(c.id, notice.revision);
 
   const body = [
     section(t('drawer.patient'), 'person', facts([
@@ -7251,7 +8738,7 @@ function caseDrawer(s, c) {
       [t('drawer.location'), tm(describeLocation(s, patient))],
       [t('drawer.journey'), t(`journey.${c.journey}`)],
       [t('incoming.acuity'), c.triage ? t('incoming.triageValue', { p: c.triage.priority }) : t('incoming.notAssessed')],
-      c.crewAcuity ? [t('drawer.handover'), t('incoming.crewAcuity', { level: c.crewAcuity.level })] : null,
+      c.crewAcuity ? [t('crew.section.acuity'), t('incoming.crewAcuity', { level: acuityLabel(c.crewAcuity.level) })] : null,
       [t('incoming.coordinator'), userName(c.assignedCoordinatorId)],
       [t('incoming.bed'), res ? t('incoming.reservedUntil', { bed: s.beds[res.bedId].label, time: res.expiresAt ? formatTime(res.expiresAt) : t('reservation.held') }) : t('incoming.noBed')],
       c.disposition ? [t('disposition.decision'), t('drawer.disposition', { decision: t(`disposition.${c.disposition.decision}`) })] : null,
@@ -7263,7 +8750,11 @@ function caseDrawer(s, c) {
   if (!showP) {
     body.push(h('p', { class: 'notice' }, icon('lock', { size: 16 }), h('span', { text: t('drawer.patientHidden') })));
   } else {
-    if (notice) {
+    if (notice?.handover) {
+      // Ambulance handover: the same card the crew previewed before sending, plus what changed in each update.
+      body.push(section(t('drawer.handover'), 'ambulance', handoverCard(handoverData(s, c), { now: n })));
+      body.push(section(t('drawer.whatChangedTitle'), 'history', whatChanged(notice, ctx.ui.viewSnapshot.revision)));
+    } else if (notice) {
       const r = notice.reported ?? {};
       body.push(section(t('drawer.reported'), 'comment',
         h('p', { class: 'small' }, pill('pending', t('incoming.unverified'), 'info'), ' ', t('drawer.extraction', { method: t(`extraction.${notice.extractionMethod}`) })),
@@ -7282,7 +8773,8 @@ function caseDrawer(s, c) {
         ]),
         h('h4', { class: 'small muted', text: t('drawer.transcript') }),
         notice.transcript ? h('blockquote', { class: 'notice', text: notice.transcript }) : h('p', { class: 'small muted', text: t('drawer.noTranscript') })));
-      if (notice.handover) body.push(handoverSection(notice.handover));
+    }
+    if (notice) {
       body.push(section(t('drawer.clarifications'), 'comment', clarifications.length ? h('ol', { class: 'timeline' }, clarifications.map((cm) => h('li', {},
         h('time', { datetime: cm.createdAt, text: formatTime(cm.createdAt) }),
         h('div', {}, h('p', {}, h('strong', { text: userName(cm.authorId) }), ` · ${cm.body}`),
@@ -7307,19 +8799,6 @@ function caseDrawer(s, c) {
   };
 }
 
-function handoverSection(ho) {
-  return section(t('drawer.handover'), 'ambulance',
-    ho.crewAcuity ? h('p', {}, pill('neutral', t('incoming.crewAcuity', { level: ho.crewAcuity.level }), 'ambulance')) : null,
-    h('h4', { class: 'small muted', text: t('drawer.vitals') }),
-    ho.vitals?.length ? h('ul', { class: 'small' }, ho.vitals.map((v) => h('li', { text: t('drawer.vitalLine', { name: v.name, value: v.value, unit: v.unit, time: formatTime(v.at) }) }))) : h('p', { class: 'small muted', text: t('common.none') }),
-    facts([
-      [t('drawer.interventions'), ho.interventions?.length ? ho.interventions.join('; ') : t('common.none')],
-      [t('drawer.historyField'), ho.history ?? t('common.unknown')],
-      [t('field.allergies'), ho.allergies ?? t('common.unknown')],
-      [t('drawer.receiving'), ho.receivingRequirements ?? t('common.none')],
-    ]));
-}
-
 function caseActions(s, c, notice, res) {
   const loc = s.patients[c.patientId].location.kind;
   const anyBed = values(s, 'beds').find((b) => b.hospitalId === c.destinationHospitalId && b.department === 'ER');
@@ -7342,6 +8821,8 @@ function caseActions(s, c, notice, res) {
     }
   }
   if (loc === 'er_waiting' && !c.triage) add(actionButton({ action: 'recordTriage', payload: { caseId: c.id }, label: t('action.recordTriage'), iconName: 'hourglass', open: (seen) => openTriage(c, seen) }));
+  const handover = values(s, 'tasks').find((tk) => tk.category === 'ambulance_handover' && tk.linked.caseId === c.id && !['done', 'canceled'].includes(tk.status));
+  if (handover) add(actionButton({ action: 'updateTaskStatus', payload: { taskId: handover.id, status: 'done' }, label: t('action.handoverComplete'), kind: 'primary', iconName: 'check' }));
   if (loc === 'bed' || loc === 'er_waiting') caseClinicalActions(s, c).forEach(add);
   if (loc === 'pre_hospital') add(actionButton({ action: 'cancelCase', payload: { caseId: c.id }, label: t('action.cancelCase'), kind: 'danger', open: (seen) => openCancelCase(c, seen) }));
   return list;
@@ -7612,8 +9093,10 @@ __sila_modules["ui/app.js"] = (() => {
 const { t, dir, getLocale } = __sila_modules["i18n.js"];
 const { h, clear } = __sila_modules["ui/dom.js"];
 const { ctx, initStore, requestRender, now, closeDrawer, currentUser, routeAllowed, defaultRoute } = __sila_modules["ui/core.js"];
-const { renderTopbar, renderNotifications, renderPublicTopbar } = __sila_modules["ui/shell.js"];
-const { renderWelcome, renderAmbulancePlaceholder, renderCitizenStart, renderCapture, renderReview, renderHospitals } = __sila_modules["ui/citizen.js"];
+const { renderTopbar, renderNotifications, renderPublicTopbar, renderCrewTopbar } = __sila_modules["ui/shell.js"];
+const { renderWelcome, renderCitizenStart, renderCapture, renderReview, renderHospitals } = __sila_modules["ui/citizen.js"];
+const { renderCrewHome, renderCrewForm, renderCrewPreview, renderCrewCase } = __sila_modules["ui/crew.js"];
+const { renderAdmin } = __sila_modules["ui/admin.js"];
 const { renderCase, renderNotices } = __sila_modules["ui/notices.js"];
 const { renderEr } = __sila_modules["ui/er.js"];
 const { renderTasks } = __sila_modules["ui/tasks.js"];
@@ -7621,11 +9104,10 @@ const { renderIcu } = __sila_modules["ui/icu.js"];
 const { renderQueue, renderTransport } = __sila_modules["ui/queues.js"];
 const { renderDrawer } = __sila_modules["ui/drawer.js"];
 
-const ROUTES = { er: renderEr, icu: renderIcu, tasks: renderTasks, queue: renderQueue, transport: renderTransport };
-// Public pages (no login): welcome, the citizen journey and the ambulance placeholder.
+const ROUTES = { er: renderEr, icu: renderIcu, tasks: renderTasks, queue: renderQueue, transport: renderTransport, admin: renderAdmin };
+// Public pages (no login): welcome and the citizen journey.
 const PUBLIC = {
   welcome: { render: renderWelcome, title: 'app.tagline' },
-  ambulance: { render: renderAmbulancePlaceholder, title: 'welcome.ambulanceTitle' },
   citizen: { render: renderCitizenStart, title: 'welcome.citizenTitle' },
   'citizen/capture': { render: renderCapture, title: 'capture.title' },
   'citizen/review': { render: renderReview, title: 'review.title' },
@@ -7633,10 +9115,20 @@ const PUBLIC = {
   'citizen/notices': { render: renderNotices, title: 'notices.title' },
   'citizen/case': { render: (main, id) => renderCase(main, id), title: 'notices.title' },
 };
+// Ambulance crew pages (mobile-first; a crew member signs in through the role switcher or the crew sign-in screen).
+const CREW = {
+  home: { render: (main) => renderCrewHome(main), title: 'nav.crew' },
+  new: { render: (main) => renderCrewForm(main, null), title: 'crew.formNew' },
+  edit: { render: (main, id) => renderCrewForm(main, id), title: 'crew.formEditTitle' },
+  preview: { render: (main, id) => renderCrewPreview(main, id ?? null), title: 'crew.previewTitle' },
+  case: { render: (main, id) => renderCrewCase(main, id), title: 'crew.caseTitleShort' },
+};
 // Each staff account only sees the pages its role may use; anything else falls back to the role's default page.
 const resolveRoute = () => {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   if (!parts.length) { history.replaceState(null, '', '#/welcome'); return { family: 'public', key: 'welcome' }; }
+  if (parts[0] === 'ambulance') { history.replaceState(null, '', '#/crew'); return { family: 'crew', key: 'home' }; }
+  if (parts[0] === 'crew') return CREW[parts[1]] ? { family: 'crew', key: parts[1], param: parts[2] } : { family: 'crew', key: 'home' };
   if (parts[0] === 'citizen' && parts[1] === 'case') return { family: 'public', key: 'citizen/case', param: parts[2] };
   const pubKey = parts[0] === 'citizen' && parts[1] ? `citizen/${parts[1]}` : parts[0];
   if (PUBLIC[pubKey]) return { family: 'public', key: pubKey };
@@ -7644,9 +9136,9 @@ const resolveRoute = () => {
   if (ROUTES[parts[0]] && routeAllowed(parts[0], u)) return { family: 'staff', key: parts[0] };
   const fallback = defaultRoute(u);
   history.replaceState(null, '', `#/${fallback}`);
-  return { family: 'staff', key: fallback };
+  return fallback === 'crew' ? { family: 'crew', key: 'home' } : { family: 'staff', key: fallback };
 };
-const TITLE_KEY = { er: 'nav.er', icu: 'nav.icu', tasks: 'nav.tasks', transport: 'nav.transport' };
+const TITLE_KEY = { er: 'nav.er', icu: 'nav.icu', tasks: 'nav.tasks', transport: 'nav.transport', admin: 'nav.admin' };
 const el = (id) => document.getElementById(id);
 
 // Live re-renders replace DOM nodes; keep focus, typed text and drawer scroll where the user left them.
@@ -7693,15 +9185,18 @@ function render() {
   ctx.ui.route = route.key;
   document.documentElement.lang = getLocale();
   document.documentElement.dir = dir();
-  document.body.classList.toggle('public', route.family === 'public');
+  document.body.classList.toggle('public', route.family !== 'staff');
+  document.body.classList.toggle('crew', route.family === 'crew');
   document.body.classList.toggle('staff', route.family === 'staff');
   if (changed) view.mainScroll = 0;
 
   const main = clear(el('main'));
-  if (route.family === 'public') {
-    document.title = `${t('app.name')} — ${t(PUBLIC[route.key].title)}`;
-    renderPublicTopbar(el('topbar'));
-    PUBLIC[route.key].render(main, route.param);
+  if (route.family !== 'staff') {
+    const page = route.family === 'crew' ? CREW[route.key] : PUBLIC[route.key];
+    document.title = `${t('app.name')} — ${t(page.title)}`;
+    if (route.family === 'crew') renderCrewTopbar(el('topbar'));
+    else renderPublicTopbar(el('topbar'));
+    page.render(main, route.param);
     ctx.ui.drawer = null;
     clear(el('drawer-root'));
     clear(el('notif-root'));

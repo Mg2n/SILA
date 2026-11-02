@@ -13,8 +13,8 @@ function s(tag, attrs = {}, ...children) {
   return el;
 }
 
-/** cityMap({ hospitals: [{ id, shortName, name, position, trip? }], point, selectedId, onSelect }) */
-export function cityMap({ hospitals, point, selectedId, onSelect }) {
+/** cityMap({ hospitals: [{ id, shortName, name, position, trip? }], point, pointLabel, selectedId, onSelect }) */
+export function cityMap({ hospitals, point, pointLabel = t('hospitals.you'), selectedId, onSelect }) {
   const W = DEMO_GRID.width * K;
   const H = DEMO_GRID.height * K;
   const selected = hospitals.find((h) => h.id === selectedId);
@@ -28,13 +28,14 @@ export function cityMap({ hospitals, point, selectedId, onSelect }) {
     point && selected ? s('line', { x1: point.x * K, y1: point.y * K, x2: selected.position.x * K, y2: selected.position.y * K, class: 'route' }) : null,
     point ? s('g', { class: 'you', 'aria-hidden': 'true' },
       s('circle', { cx: point.x * K, cy: point.y * K, r: 6 }), s('circle', { cx: point.x * K, cy: point.y * K, r: 2.5, class: 'dot' }),
-      s('text', { x: point.x * K, y: point.y * K - 10, 'text-anchor': 'middle' }, t('hospitals.you'))) : null,
+      s('text', { x: point.x * K, y: point.y * K - 10, 'text-anchor': 'middle' }, pointLabel)) : null,
     hospitals.map((h) => {
       const x = h.position.x * K;
       const y = h.position.y * K;
       const g = s('g', { class: ['marker', h.id === selectedId ? 'selected' : ''].join(' '), tabindex: 0, role: 'button',
         'aria-pressed': String(h.id === selectedId), 'data-focus-key': `map:${h.id}`,
         'aria-label': h.trip ? `${h.name}, ${t('hospitals.distance', { km: h.trip.km })} (${t('hospitals.simulated')})` : h.name },
+        s('circle', { cx: x, cy: y, r: 15, class: 'hit' }), // invisible touch target (≥ 44px at phone width)
         s('circle', { cx: x, cy: y, r: 9 }),
         s('path', { d: `M${x} ${y - 4.5}v9M${x - 4.5} ${y}h9`, class: 'cross' }),
         s('text', { x, y: y + 20, 'text-anchor': 'middle' }, h.shortName));

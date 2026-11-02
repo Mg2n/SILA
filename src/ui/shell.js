@@ -6,7 +6,7 @@ import { unreadCount, selectMyWork, citizenCases } from '../selectors.js';
 import { t, tm, formatRelative } from '../i18n.js';
 import { h, clear } from './dom.js';
 import { icon } from './icons.js';
-import { ctx, state, now, currentUser, setCurrentUser, isStaff, requestRender, run, openRecord, seenVersion, deptAccess, QUEUE_ROLES, deviceRef } from './core.js';
+import { ctx, state, now, currentUser, setCurrentUser, isStaff, isCrew, requestRender, run, openRecord, seenVersion, deptAccess, QUEUE_ROLES, deviceRef, defaultRoute } from './core.js';
 import { emptyState, pill, roleLabel } from './components.js';
 import { openReset } from './forms.js';
 
@@ -28,6 +28,7 @@ export function renderTopbar(el) {
       deptAccess(u).includes('ICU') ? navLink('icu', 'bed', t('nav.icu')) : null,
       QUEUE_ROLES.includes(u.role) ? navLink('queue', 'broom', t(`nav.queue.${u.role}`)) : null,
       u.role === 'porter' ? navLink('transport', 'transfer', t('nav.transport')) : null,
+      u.role === 'admin' ? navLink('admin', 'history', t('nav.admin')) : null,
       navLink('tasks', 'tasks', t('nav.tasks'), myWork.tasks.length + myWork.tickets.length)),
     h('div', { class: 'topbar-end' },
       userCard(s, u),
@@ -49,15 +50,42 @@ function userCard(s, u) {
       h('span', { text: s.hospitals[u.hospitalId]?.shortName ?? '' })));
 }
 
-function switcher(s, u) {
+// Demo sign-in: hospital staff grouped by hospital, then the ambulance crews (signing in as a crew opens the crew screens).
+function switcher(s, u, { onCrewPage = false } = {}) {
   const staff = values(s, 'users').filter(isStaff);
+  const crews = values(s, 'users').filter(isCrew).sort((a, b) => a.ambulanceId.localeCompare(b.ambulanceId) || a.name.localeCompare(b.name));
   const groups = values(s, 'hospitals').map((hosp) => ({ hosp, users: staff.filter((x) => x.hospitalId === hosp.id) })).filter((g) => g.users.length);
+  const signedIn = onCrewPage ? isCrew(u) : true;
+  const change = (id) => {
+    setCurrentUser(id);
+    const next = s.users[id];
+    if (isCrew(next) !== onCrewPage) location.hash = `#/${defaultRoute(next)}`;
+  };
   return h('div', { class: 'switcher' },
     h('label', { for: 'role-switcher', text: t('switcher.label') }),
-    h('select', { id: 'role-switcher', 'aria-describedby': 'role-switcher-hint', 'data-focus-key': 'switcher', onchange: (e) => setCurrentUser(e.target.value) },
-      groups.map(({ hosp, users }) => h('optgroup', { label: hosp.name }, users.map((x) => h('option', { value: x.id, selected: x.id === u.id,
-        text: t('switcher.option', { name: x.name, role: roleLabel(x.role), dept: x.department ? t('switcher.deptSuffix', { dept: t(`dept.${x.department}`) }) : '' }) }))))),
+    h('select', { id: 'role-switcher', 'aria-describedby': 'role-switcher-hint', 'data-focus-key': 'switcher', onchange: (e) => change(e.target.value) },
+      signedIn ? null : h('option', { value: '', selected: true, disabled: true, text: t('switcher.chooseCrew') }),
+      groups.map(({ hosp, users }) => h('optgroup', { label: hosp.name }, users.map((x) => h('option', { value: x.id, selected: signedIn && x.id === u.id,
+        text: t('switcher.option', { name: x.name, role: roleLabel(x.role), dept: x.department ? t('switcher.deptSuffix', { dept: t(`dept.${x.department}`) }) : '' }) })))),
+      crews.length ? h('optgroup', { label: t('switcher.crewGroup') }, crews.map((x) => h('option', { value: x.id, selected: signedIn && x.id === u.id,
+        text: t('switcher.option', { name: x.name, role: roleLabel(x.role), dept: t('switcher.deptSuffix', { dept: x.ambulanceId }) }) }))) : null),
     h('span', { id: 'role-switcher-hint', class: 'sr-only', text: t('switcher.hint') }));
+}
+
+// Header for the crew screens (mobile-first): home, unread messages for this crew member, and the demo sign-in.
+export function renderCrewTopbar(el) {
+  clear(el);
+  const s = state();
+  const u = currentUser();
+  const unread = isCrew(u) ? unreadCount(notificationsFor(s, u), u) : 0;
+  el.append(
+    h('a', { class: 'brand', href: '#/welcome', 'aria-label': t('public.home') }, icon('logo', { size: 30, cls: 'logo' }),
+      h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('welcome.ambulanceTitle') }))),
+    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
+    h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
+      h('a', { href: '#/crew', 'aria-current': ctx.ui.route === 'home' ? 'page' : null }, icon('ambulance', { size: 16 }), t('nav.crew'),
+        unread ? h('span', { class: 'count-badge', 'aria-label': t('notif.buttonCount', { n: unread }), text: String(unread) }) : null)),
+    switcher(s, u, { onCrewPage: true }));
 }
 
 // Header for public pages (citizens): no accounts, no role switcher — just home, this device's notices and staff entry.

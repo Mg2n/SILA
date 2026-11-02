@@ -4,6 +4,7 @@
 import { values, isOpenTask, isOpenTicket, ACTIVE_TRANSFER_STATUS } from './data.js';
 import { msg } from './messages.js';
 import { simulatedTrip } from './geo.js';
+import { can } from './permissions.js';
 import {
   deriveBedReadiness, forecastReadyTime, incomingCases, activeReservationForBed, myTasks, expectedToFreeSoon, suggestedBedFor,
 } from './readiness.js';
@@ -371,4 +372,46 @@ export function deviceNotifications(state, deviceRef) {
 export function selectRecentlyCanceled(state, hospitalId, now, windowMinutes = 120) {
   return values(state, 'cases').filter((c) => c.status === 'canceled' && c.destinationHospitalId === hospitalId
     && ms(now) - ms(c.updatedAt) <= windowMinutes * 60000).sort((a, b) => ms(b.updatedAt) - ms(a.updatedAt));
+}
+
+// ---------------------------------------------------------------------------
+// Ambulance crews: a unit sees only the cases assigned to it
+// ---------------------------------------------------------------------------
+export function unitMembers(state, ambulanceId) {
+  return values(state, 'users').filter((u) => u.role === 'paramedic' && u.ambulanceId === ambulanceId);
+}
+
+const unitOfCase = (state, c) => (c?.ambulanceAssignmentId ? state.ambulanceAssignments[c.ambulanceAssignmentId]?.ambulanceId ?? null : null);
+
+export function crewCases(state, user) {
+  if (user?.role !== 'paramedic' || !user.ambulanceId) return [];
+  return values(state, 'cases').filter((c) => unitOfCase(state, c) === user.ambulanceId).sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
+}
+
+// Permission scope for a crew read: the case belongs to every member of the unit it is assigned to.
+export function crewScope(state, c) {
+  const unit = unitOfCase(state, c);
+  return { entity: 'case', hospitalId: c.destinationHospitalId, assignedUserIds: unit ? unitMembers(state, unit).map((u) => u.id) : [] };
+}
+
+// Full handover view of one case for its own crew (null for any other unit).
+export function crewCaseView(state, caseId, user) {
+  const c = state.cases[caseId];
+  if (!c || !user || !can(user, 'viewCrewCase', crewScope(state, c)).allowed) return null;
+  const n = state.arrivalNotices[c.noticeId];
+  return {
+    case: c, notice: n, patient: state.patients[c.patientId], assignment: state.ambulanceAssignments[c.ambulanceAssignmentId],
+    destination: state.hospitals[c.destinationHospitalId], acknowledged: n?.acknowledged ?? null,
+    clarifications: values(state, 'comments').filter((cm) => cm.caseId === c.id && cm.kind === 'clarification').sort((a, b) => ms(a.createdAt) - ms(b.createdAt)),
+    reservation: values(state, 'reservations').find((r) => r.caseId === c.id && r.status === 'active') ?? null,
+  };
+}
+
+// Audit log for the admin page, newest first, with optional filters.
+export function auditLog(state, { userId = null, recordId = null, action = null, from = null, to = null } = {}) {
+  return values(state, 'auditEvents')
+    .filter((e) => (!userId || e.actorId === userId) && (!action || e.action === action)
+      && (!recordId || e.refs?.some((r) => r.id === recordId) || e.changed?.includes(recordId))
+      && (!from || ms(e.at) >= ms(from)) && (!to || ms(e.at) <= ms(to)))
+    .sort((a, b) => ms(b.at) - ms(a.at));
 }

@@ -6,7 +6,8 @@ import { bedBoardStatus, careTasksForPatient, bedWorkTasks } from '../selectors.
 import { t, tm, formatTime, formatRelative } from '../i18n.js';
 import { h, clear } from './dom.js';
 import { icon, ambulanceIllustration } from './icons.js';
-import { ctx, state, now, canSeePatient, closeDrawer } from './core.js';
+import { ctx, state, now, canSeePatient, closeDrawer, viewedRevision, markViewed } from './core.js';
+import { handoverCard, handoverData, whatChanged, acuityLabel } from './handover.js';
 import { pill, emptyState, actionButton, uiButton, forecastLine, blockerList, historyList, commentsSection, userName } from './components.js';
 import { taskRow } from './taskui.js';
 import {
@@ -177,6 +178,9 @@ function caseDrawer(s, c) {
   const res = activeReservationForCase(s, c.id, n);
   const tr = activeTransferForCase(s, c.id);
   const clarifications = values(s, 'comments').filter((cm) => cm.caseId === c.id && cm.kind === 'clarification');
+  // "What changed": updates after the revision this user had seen when the drawer opened are marked new.
+  if (ctx.ui.viewSnapshot?.caseId !== c.id) ctx.ui.viewSnapshot = { caseId: c.id, revision: viewedRevision(c.id) };
+  if (notice?.handover && showP) markViewed(c.id, notice.revision);
 
   const body = [
     section(t('drawer.patient'), 'person', facts([
@@ -184,7 +188,7 @@ function caseDrawer(s, c) {
       [t('drawer.location'), tm(describeLocation(s, patient))],
       [t('drawer.journey'), t(`journey.${c.journey}`)],
       [t('incoming.acuity'), c.triage ? t('incoming.triageValue', { p: c.triage.priority }) : t('incoming.notAssessed')],
-      c.crewAcuity ? [t('drawer.handover'), t('incoming.crewAcuity', { level: c.crewAcuity.level })] : null,
+      c.crewAcuity ? [t('crew.section.acuity'), t('incoming.crewAcuity', { level: acuityLabel(c.crewAcuity.level) })] : null,
       [t('incoming.coordinator'), userName(c.assignedCoordinatorId)],
       [t('incoming.bed'), res ? t('incoming.reservedUntil', { bed: s.beds[res.bedId].label, time: res.expiresAt ? formatTime(res.expiresAt) : t('reservation.held') }) : t('incoming.noBed')],
       c.disposition ? [t('disposition.decision'), t('drawer.disposition', { decision: t(`disposition.${c.disposition.decision}`) })] : null,
@@ -196,7 +200,11 @@ function caseDrawer(s, c) {
   if (!showP) {
     body.push(h('p', { class: 'notice' }, icon('lock', { size: 16 }), h('span', { text: t('drawer.patientHidden') })));
   } else {
-    if (notice) {
+    if (notice?.handover) {
+      // Ambulance handover: the same card the crew previewed before sending, plus what changed in each update.
+      body.push(section(t('drawer.handover'), 'ambulance', handoverCard(handoverData(s, c), { now: n })));
+      body.push(section(t('drawer.whatChangedTitle'), 'history', whatChanged(notice, ctx.ui.viewSnapshot.revision)));
+    } else if (notice) {
       const r = notice.reported ?? {};
       body.push(section(t('drawer.reported'), 'comment',
         h('p', { class: 'small' }, pill('pending', t('incoming.unverified'), 'info'), ' ', t('drawer.extraction', { method: t(`extraction.${notice.extractionMethod}`) })),
@@ -215,7 +223,8 @@ function caseDrawer(s, c) {
         ]),
         h('h4', { class: 'small muted', text: t('drawer.transcript') }),
         notice.transcript ? h('blockquote', { class: 'notice', text: notice.transcript }) : h('p', { class: 'small muted', text: t('drawer.noTranscript') })));
-      if (notice.handover) body.push(handoverSection(notice.handover));
+    }
+    if (notice) {
       body.push(section(t('drawer.clarifications'), 'comment', clarifications.length ? h('ol', { class: 'timeline' }, clarifications.map((cm) => h('li', {},
         h('time', { datetime: cm.createdAt, text: formatTime(cm.createdAt) }),
         h('div', {}, h('p', {}, h('strong', { text: userName(cm.authorId) }), ` · ${cm.body}`),
@@ -240,19 +249,6 @@ function caseDrawer(s, c) {
   };
 }
 
-function handoverSection(ho) {
-  return section(t('drawer.handover'), 'ambulance',
-    ho.crewAcuity ? h('p', {}, pill('neutral', t('incoming.crewAcuity', { level: ho.crewAcuity.level }), 'ambulance')) : null,
-    h('h4', { class: 'small muted', text: t('drawer.vitals') }),
-    ho.vitals?.length ? h('ul', { class: 'small' }, ho.vitals.map((v) => h('li', { text: t('drawer.vitalLine', { name: v.name, value: v.value, unit: v.unit, time: formatTime(v.at) }) }))) : h('p', { class: 'small muted', text: t('common.none') }),
-    facts([
-      [t('drawer.interventions'), ho.interventions?.length ? ho.interventions.join('; ') : t('common.none')],
-      [t('drawer.historyField'), ho.history ?? t('common.unknown')],
-      [t('field.allergies'), ho.allergies ?? t('common.unknown')],
-      [t('drawer.receiving'), ho.receivingRequirements ?? t('common.none')],
-    ]));
-}
-
 function caseActions(s, c, notice, res) {
   const loc = s.patients[c.patientId].location.kind;
   const anyBed = values(s, 'beds').find((b) => b.hospitalId === c.destinationHospitalId && b.department === 'ER');
@@ -275,6 +271,8 @@ function caseActions(s, c, notice, res) {
     }
   }
   if (loc === 'er_waiting' && !c.triage) add(actionButton({ action: 'recordTriage', payload: { caseId: c.id }, label: t('action.recordTriage'), iconName: 'hourglass', open: (seen) => openTriage(c, seen) }));
+  const handover = values(s, 'tasks').find((tk) => tk.category === 'ambulance_handover' && tk.linked.caseId === c.id && !['done', 'canceled'].includes(tk.status));
+  if (handover) add(actionButton({ action: 'updateTaskStatus', payload: { taskId: handover.id, status: 'done' }, label: t('action.handoverComplete'), kind: 'primary', iconName: 'check' }));
   if (loc === 'bed' || loc === 'er_waiting') caseClinicalActions(s, c).forEach(add);
   if (loc === 'pre_hospital') add(actionButton({ action: 'cancelCase', payload: { caseId: c.id }, label: t('action.cancelCase'), kind: 'danger', open: (seen) => openCancelCase(c, seen) }));
   return list;

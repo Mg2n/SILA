@@ -3,8 +3,10 @@
 import { t, dir, getLocale } from '../i18n.js';
 import { h, clear } from './dom.js';
 import { ctx, initStore, requestRender, now, closeDrawer, currentUser, routeAllowed, defaultRoute } from './core.js';
-import { renderTopbar, renderNotifications, renderPublicTopbar } from './shell.js';
-import { renderWelcome, renderAmbulancePlaceholder, renderCitizenStart, renderCapture, renderReview, renderHospitals } from './citizen.js';
+import { renderTopbar, renderNotifications, renderPublicTopbar, renderCrewTopbar } from './shell.js';
+import { renderWelcome, renderCitizenStart, renderCapture, renderReview, renderHospitals } from './citizen.js';
+import { renderCrewHome, renderCrewForm, renderCrewPreview, renderCrewCase } from './crew.js';
+import { renderAdmin } from './admin.js';
 import { renderCase, renderNotices } from './notices.js';
 import { renderEr } from './er.js';
 import { renderTasks } from './tasks.js';
@@ -12,11 +14,10 @@ import { renderIcu } from './icu.js';
 import { renderQueue, renderTransport } from './queues.js';
 import { renderDrawer } from './drawer.js';
 
-const ROUTES = { er: renderEr, icu: renderIcu, tasks: renderTasks, queue: renderQueue, transport: renderTransport };
-// Public pages (no login): welcome, the citizen journey and the ambulance placeholder.
+const ROUTES = { er: renderEr, icu: renderIcu, tasks: renderTasks, queue: renderQueue, transport: renderTransport, admin: renderAdmin };
+// Public pages (no login): welcome and the citizen journey.
 const PUBLIC = {
   welcome: { render: renderWelcome, title: 'app.tagline' },
-  ambulance: { render: renderAmbulancePlaceholder, title: 'welcome.ambulanceTitle' },
   citizen: { render: renderCitizenStart, title: 'welcome.citizenTitle' },
   'citizen/capture': { render: renderCapture, title: 'capture.title' },
   'citizen/review': { render: renderReview, title: 'review.title' },
@@ -24,10 +25,20 @@ const PUBLIC = {
   'citizen/notices': { render: renderNotices, title: 'notices.title' },
   'citizen/case': { render: (main, id) => renderCase(main, id), title: 'notices.title' },
 };
+// Ambulance crew pages (mobile-first; a crew member signs in through the role switcher or the crew sign-in screen).
+const CREW = {
+  home: { render: (main) => renderCrewHome(main), title: 'nav.crew' },
+  new: { render: (main) => renderCrewForm(main, null), title: 'crew.formNew' },
+  edit: { render: (main, id) => renderCrewForm(main, id), title: 'crew.formEditTitle' },
+  preview: { render: (main, id) => renderCrewPreview(main, id ?? null), title: 'crew.previewTitle' },
+  case: { render: (main, id) => renderCrewCase(main, id), title: 'crew.caseTitleShort' },
+};
 // Each staff account only sees the pages its role may use; anything else falls back to the role's default page.
 const resolveRoute = () => {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   if (!parts.length) { history.replaceState(null, '', '#/welcome'); return { family: 'public', key: 'welcome' }; }
+  if (parts[0] === 'ambulance') { history.replaceState(null, '', '#/crew'); return { family: 'crew', key: 'home' }; }
+  if (parts[0] === 'crew') return CREW[parts[1]] ? { family: 'crew', key: parts[1], param: parts[2] } : { family: 'crew', key: 'home' };
   if (parts[0] === 'citizen' && parts[1] === 'case') return { family: 'public', key: 'citizen/case', param: parts[2] };
   const pubKey = parts[0] === 'citizen' && parts[1] ? `citizen/${parts[1]}` : parts[0];
   if (PUBLIC[pubKey]) return { family: 'public', key: pubKey };
@@ -35,9 +46,9 @@ const resolveRoute = () => {
   if (ROUTES[parts[0]] && routeAllowed(parts[0], u)) return { family: 'staff', key: parts[0] };
   const fallback = defaultRoute(u);
   history.replaceState(null, '', `#/${fallback}`);
-  return { family: 'staff', key: fallback };
+  return fallback === 'crew' ? { family: 'crew', key: 'home' } : { family: 'staff', key: fallback };
 };
-const TITLE_KEY = { er: 'nav.er', icu: 'nav.icu', tasks: 'nav.tasks', transport: 'nav.transport' };
+const TITLE_KEY = { er: 'nav.er', icu: 'nav.icu', tasks: 'nav.tasks', transport: 'nav.transport', admin: 'nav.admin' };
 const el = (id) => document.getElementById(id);
 
 // Live re-renders replace DOM nodes; keep focus, typed text and drawer scroll where the user left them.
@@ -84,15 +95,18 @@ function render() {
   ctx.ui.route = route.key;
   document.documentElement.lang = getLocale();
   document.documentElement.dir = dir();
-  document.body.classList.toggle('public', route.family === 'public');
+  document.body.classList.toggle('public', route.family !== 'staff');
+  document.body.classList.toggle('crew', route.family === 'crew');
   document.body.classList.toggle('staff', route.family === 'staff');
   if (changed) view.mainScroll = 0;
 
   const main = clear(el('main'));
-  if (route.family === 'public') {
-    document.title = `${t('app.name')} — ${t(PUBLIC[route.key].title)}`;
-    renderPublicTopbar(el('topbar'));
-    PUBLIC[route.key].render(main, route.param);
+  if (route.family !== 'staff') {
+    const page = route.family === 'crew' ? CREW[route.key] : PUBLIC[route.key];
+    document.title = `${t('app.name')} — ${t(page.title)}`;
+    if (route.family === 'crew') renderCrewTopbar(el('topbar'));
+    else renderPublicTopbar(el('topbar'));
+    page.render(main, route.param);
     ctx.ui.drawer = null;
     clear(el('drawer-root'));
     clear(el('notif-root'));
