@@ -23,7 +23,6 @@ export function renderTopbar(el) {
   el.append(
     h('div', { class: 'brand' }, icon('logo', { size: 30, cls: 'logo' }),
       h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('app.tagline') }))),
-    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
     h('nav', { class: 'topnav', 'aria-label': t('nav.main') },
       deptAccess(u).includes('ER') ? navLink('er', 'dashboard', t('nav.er')) : null,
       deptAccess(u).includes('ICU') ? navLink('icu', 'bed', t('nav.icu')) : null,
@@ -97,7 +96,6 @@ export function renderCrewTopbar(el) {
   el.append(
     h('a', { class: 'brand', href: '#/welcome', 'aria-label': t('public.home') }, icon('logo', { size: 30, cls: 'logo' }),
       h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('welcome.ambulanceTitle') }))),
-    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
     h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
       h('a', { href: '#/crew', 'aria-current': ctx.ui.route === 'home' ? 'page' : null }, icon('ambulance', { size: 16 }), t('nav.crew'),
         unread ? h('span', { class: 'count-badge', 'aria-label': t('notif.buttonCount', { n: unread }), text: String(unread) }) : null)),
@@ -113,7 +111,6 @@ export function renderPublicTopbar(el) {
   el.append(
     h('a', { class: 'brand', href: '#/welcome', 'aria-label': t('public.home') }, icon('logo', { size: 30, cls: 'logo' }),
       h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('app.tagline') }))),
-    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
     h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
       h('a', { href: '#/citizen/notices', 'aria-current': ctx.ui.route === 'citizen/notices' ? 'page' : null }, icon('inbox', { size: 16 }), t('public.myNotices'),
         count ? h('span', { class: 'count-badge', text: String(count) }) : null),

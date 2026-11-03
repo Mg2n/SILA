@@ -16,7 +16,6 @@ const en = {
   // App shell
   'app.name': 'SILA',
   'app.tagline': 'Connected Patient Flow',
-  'app.demoBadge': 'Hackathon demo — synthetic data',
   'app.skipToMain': 'Skip to main content',
   'app.simulatedNote': 'Role checks are simulated in this prototype. Production authentication, authorization and multi-user sync require a secure server.',
   'app.persistenceNote': 'Demo data is stored in this browser only and syncs between open tabs. It is not a secure or transactional store.',

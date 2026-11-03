@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" dir="ltr">
-<!-- Built by build.js from src/index.html on 2026-11-03T06:13:07.136Z — do not edit; edit src/ and rebuild. -->
+<!-- Built by build.js from src/index.html on 2026-11-03T06:59:53.854Z — do not edit; edit src/ and rebuild. -->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand .logo { color: #5fd0c9; }
 .brand-name { font-weight: 800; font-size: 20px; letter-spacing: 0.04em; }
 .brand-tag { font-size: 12px; color: #b9cde3; }
-.demo-badge { display: inline-flex; align-items: center; gap: 6px; padding-block: 3px; padding-inline: 10px; border-radius: 999px; background: #fff3df; color: #6b3a00; font-size: 12px; font-weight: 600; }
 .topnav { display: flex; gap: 4px; margin-inline-start: 8px; }
 .topnav a { display: inline-flex; align-items: center; gap: 6px; color: #dbe7f3; text-decoration: none; padding-block: 6px; padding-inline: 10px; border-radius: var(--radius-sm); }
 .topnav a[aria-current="page"] { background: rgb(255 255 255 / 14%); color: #fff; font-weight: 600; }
@@ -558,7 +557,6 @@ __sila_modules["locales/ar1.js"] = (() => {
 const ar1 = {
   'app.name': 'SILA',
   'app.tagline': 'تدفّق المرضى المترابط',
-  'app.demoBadge': 'عرض هاكاثون — بيانات اصطناعية',
   'app.skipToMain': 'تخطَّ إلى المحتوى الرئيسي',
   'app.simulatedNote': 'التحقق من الأدوار محاكاة في هذا النموذج الأولي. يتطلب التحقق من الهوية والصلاحيات والمزامنة بين المستخدمين في بيئة الإنتاج خادمًا آمنًا.',
   'app.persistenceNote': 'تُحفظ بيانات العرض في هذا المتصفح فقط وتتزامن بين علامات التبويب المفتوحة. وهي ليست مخزنًا آمنًا أو معامليًّا.',
@@ -2484,7 +2482,6 @@ const en = {
   // App shell
   'app.name': 'SILA',
   'app.tagline': 'Connected Patient Flow',
-  'app.demoBadge': 'Hackathon demo — synthetic data',
   'app.skipToMain': 'Skip to main content',
   'app.simulatedNote': 'Role checks are simulated in this prototype. Production authentication, authorization and multi-user sync require a secure server.',
   'app.persistenceNote': 'Demo data is stored in this browser only and syncs between open tabs. It is not a secure or transactional store.',
@@ -8491,7 +8488,6 @@ function renderTopbar(el) {
   el.append(
     h('div', { class: 'brand' }, icon('logo', { size: 30, cls: 'logo' }),
       h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('app.tagline') }))),
-    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
     h('nav', { class: 'topnav', 'aria-label': t('nav.main') },
       deptAccess(u).includes('ER') ? navLink('er', 'dashboard', t('nav.er')) : null,
       deptAccess(u).includes('ICU') ? navLink('icu', 'bed', t('nav.icu')) : null,
@@ -8565,7 +8561,6 @@ function renderCrewTopbar(el) {
   el.append(
     h('a', { class: 'brand', href: '#/welcome', 'aria-label': t('public.home') }, icon('logo', { size: 30, cls: 'logo' }),
       h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('welcome.ambulanceTitle') }))),
-    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
     h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
       h('a', { href: '#/crew', 'aria-current': ctx.ui.route === 'home' ? 'page' : null }, icon('ambulance', { size: 16 }), t('nav.crew'),
         unread ? h('span', { class: 'count-badge', 'aria-label': t('notif.buttonCount', { n: unread }), text: String(unread) }) : null)),
@@ -8581,7 +8576,6 @@ function renderPublicTopbar(el) {
   el.append(
     h('a', { class: 'brand', href: '#/welcome', 'aria-label': t('public.home') }, icon('logo', { size: 30, cls: 'logo' }),
       h('div', {}, h('div', { class: 'brand-name', text: t('app.name') }), h('div', { class: 'brand-tag', text: t('app.tagline') }))),
-    h('span', { class: 'demo-badge' }, icon('info', { size: 14 }), t('app.demoBadge')),
     h('nav', { class: 'topnav public-nav', 'aria-label': t('nav.main') },
       h('a', { href: '#/citizen/notices', 'aria-current': ctx.ui.route === 'citizen/notices' ? 'page' : null }, icon('inbox', { size: 16 }), t('public.myNotices'),
         count ? h('span', { class: 'count-badge', text: String(count) }) : null),

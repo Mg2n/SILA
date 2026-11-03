@@ -2,7 +2,7 @@
 
 SILA is a hackathon prototype that connects the people around one emergency patient: a citizen or ambulance crew tells the hospital who is coming, the ER sees it live, and staff turn a bed from "blocked" to "ready" through cleaning, repairs and nursing sign-off — then move the patient to ICU with one accurate location at every step. Every change goes through a single rule engine that checks who may do what, so the cleaner cannot sign off a bed, a nurse cannot close a technical repair, and nothing is ever "decorative". It runs entirely in the browser, in English and Arabic, with synthetic data only.
 
-> **Hackathon demo — synthetic data.** SILA is not an emergency service. It never calls for help, dispatches ambulances, diagnoses, triages or prescribes.
+> SILA is not an emergency service. It never calls for help, dispatches ambulances, diagnoses, triages or prescribes.
 
 ---
 

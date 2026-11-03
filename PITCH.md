@@ -10,7 +10,7 @@
 
 | # | Guided-demo step (panel title) | Seconds | Say this | Do this |
 |---|---|---|---|---|
-| — | *(before pressing Start)* | 15 | "Every day, ERs prepare for patients they know nothing about, and beds sit empty but unusable. SILA fixes the hand-offs in between." | Show the welcome page; point at the *synthetic data* badge. |
+| — | *(before pressing Start)* | 15 | "Every day, ERs prepare for patients they know nothing about, and beds sit empty but unusable. SILA fixes the hand-offs in between." | Show the welcome page. |
 | 1 | A citizen describes the emergency | 12 | "A daughter is with her father. She can speak or type — here, a sample. Simple rules pull out age, symptoms, allergies. Nothing is diagnosed." | Click the highlighted sample. |
 | 2 | Review, choose the nearest hospital, send | 15 | "She checks the fields, SILA ranks hospitals by simulated distance — never by who has beds — and she sends." **★ Live-sync moment:** "Watch the right screen." | Click **Send arrival notice**, then point at the right screen: the card appears with no refresh. |
 | 3 | The ER coordinator acknowledges | 10 | "The coordinator acknowledges. Her phone shows it instantly. Acknowledging is not a bed promise." | Click **Acknowledge**. |
