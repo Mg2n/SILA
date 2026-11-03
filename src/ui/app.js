@@ -2,7 +2,7 @@
 
 import { t, dir, getLocale } from '../i18n.js';
 import { h, clear } from './dom.js';
-import { ctx, initStore, initLocale, requestRender, now, closeDrawer, currentUser, routeAllowed, defaultRoute } from './core.js';
+import { ctx, initStore, initLocale, requestRender, now, closeDrawer, currentUser, routeAllowed, defaultRoute, toast } from './core.js';
 import { renderTopbar, renderNotifications, renderPublicTopbar, renderCrewTopbar } from './shell.js';
 import { renderWelcome, renderCitizenStart, renderCapture, renderReview, renderHospitals } from './citizen.js';
 import { renderCrewHome, renderCrewForm, renderCrewPreview, renderCrewCase } from './crew.js';
@@ -116,6 +116,7 @@ function renderError() {
     h('p', { text: t('error.body') }),
     h('div', { class: 'step-actions' },
       h('button', { type: 'button', class: 'btn big primary', 'data-focus-key': 'error-reload', onclick: () => location.reload() }, t('error.reload')),
+      h('button', { type: 'button', class: 'btn big', 'data-focus-key': 'error-reset', onclick: () => { ctx.store.resetDemo(); location.hash = '#/welcome'; requestRender(); } }, t('error.reset')),
       h('a', { class: 'btn big', href: '#/welcome' }, t('error.home')))));
 }
 
@@ -176,11 +177,14 @@ function renderStatic() {
 export function boot() {
   const store = initStore();
   initLocale();
+  // Saved data that could not be used was replaced by the starting data — say so rather than restarting silently.
+  if (store.recoveredFrom) setTimeout(() => toast(t('storage.recovered', { why: t(`storage.why.${store.recoveredFrom}`) }), 'warn', 20000), 0);
   ctx.render = render;
   el('skip-link').addEventListener('click', (e) => { e.preventDefault(); el('main').focus(); }); // keep the route hash intact
   initDemo();
   store.subscribe((_, info) => {
     if (info.source !== 'local') ctx.ui.lastRemoteAt = now();
+    if (info.source === 'conflict-lost') toast(t('conflict.lost', { action: info.action ? t(`auditAction.${info.action}`) : '—' }), 'warn', 15000);
     requestRender();
   });
   window.addEventListener('hashchange', () => { ctx.ui.highlight = null; requestRender(); });

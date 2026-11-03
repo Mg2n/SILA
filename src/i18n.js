@@ -1667,6 +1667,13 @@ const en7 = {
   'error.body': 'This page could not be displayed. Your demo data is safe in this browser.',
   'error.reload': 'Reload',
   'error.home': 'Go to the start page',
+  'error.reset': 'Reset demo data',
+  'err.concurrentChange': 'Another tab changed this data at the same moment. Nothing was saved — please try again.',
+  'conflict.lost': 'Another tab saved a change at the same moment, so your last change ({action}) was not kept. The screen now shows the saved data — please check and try again.',
+  'storage.recovered': 'Saved demo data could not be used ({why}), so the demo restarted from its starting data. “Reset demo” starts over at any time.',
+  'storage.why.corrupt': 'it was unreadable',
+  'storage.why.old-schema': 'it came from an older version',
+  'storage.why.invalid': 'it was incomplete or inconsistent',
 
   'demo.run': 'Run guided demo',
   'demo.startTitle': 'Guided demo',

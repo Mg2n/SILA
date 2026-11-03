@@ -222,21 +222,29 @@ export function renderReview(main) {
 
 // ---------- Step D/E: hospitals and send ----------
 let locating = false;
+let locateAttempt = 0;
+const LOCATE_GIVE_UP_MS = 15000;
 
 function useMyLocation() {
   const override = '__silaGeoOverride' in globalThis ? globalThis.__silaGeoOverride : undefined;
   const geo = override === undefined ? globalThis.navigator?.geolocation : override;
   if (!geo) { save({ locationNote: 'hospitals.unsupported' }); requestRender(); return; }
+  // The browser's own timeout only starts once permission is granted; an unanswered permission prompt would leave
+  // "Finding your location…" forever, so the app gives up after 15 s and points to the district list instead.
+  const attempt = ++locateAttempt;
+  const current = () => attempt === locateAttempt && locating;
   const done = (lat, lng) => {
+    if (!current()) return;
     const r = pointFromGeo(lat, lng);
     save({ point: r.point, place: r.outside ? { kind: 'district', id: r.district.id } : { kind: 'gps' },
       locationNote: r.outside ? 'hospitals.outside' : null, outsideDistrict: r.district.id });
     locating = false;
     requestRender();
   };
-  const failed = (code) => { locating = false; save({ locationNote: code === 1 ? 'hospitals.denied' : 'hospitals.unavailable' }); requestRender(); };
+  const failed = (code) => { if (!current()) return; locating = false; save({ locationNote: code === 1 ? 'hospitals.denied' : 'hospitals.unavailable' }); requestRender(); };
   locating = true;
   requestRender();
+  setTimeout(() => failed(3), LOCATE_GIVE_UP_MS);
   if (override) {
     // Verification seam: { lat, lng } or { error: 1|2|3 }.
     setTimeout(() => (override.error ? failed(override.error) : done(override.lat, override.lng)), 50);

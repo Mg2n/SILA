@@ -756,6 +756,74 @@ test('Store', 'storage-event fallback syncs when BroadcastChannel is unavailable
   a.close(); b.close(); stale.close();
 });
 
+test('Store', 'damaged or outdated saved data is replaced by a consistent seed and reported (Task 7)', () => {
+  const cases = [
+    ['corrupt', '{"meta": {"schemaVersion": 3, '],
+    ['invalid', '{"meta":{"schemaVersion":3,"rev":1}}'], // well-formed but missing every collection
+    ['invalid', JSON.stringify((({ beds, ...rest }) => rest)(seed(T0)))], // one collection missing
+    ['old-schema', JSON.stringify({ ...seed(T0), meta: { ...seed(T0).meta, schemaVersion: 1 } })],
+    ['old-schema', '"just a string"'],
+    ['invalid', (() => { const x = seed(T0); x.beds['bed-er-04'].occupancy = { status: 'occupied', patientId: 'p-nobody', since: T0 }; return JSON.stringify(x); })()],
+  ];
+  for (const [expected, raw] of cases) {
+    const storage = testStorage();
+    const key = uniq('sila.test');
+    storage.setItem(key, raw);
+    const st = createStore({ key, storage, channelName: uniq('ch') });
+    try {
+      eq(st.recoveredFrom, expected, `reported as ${expected}`);
+      eq(checkInvariants(st.getState()), [], 'running state is consistent');
+      eq(JSON.parse(storage.getItem(key)).meta.rev, st.getState().meta.rev, 'the damaged copy was overwritten');
+      ok(st.dispatch('completeCleaning', { bedId: 'bed-er-04', expectedVersion: st.getState().beds['bed-er-04'].version }, 'u-housekeeping'), 'the app works afterwards');
+    } finally { st.close(); }
+  }
+  const fresh = createStore({ key: uniq('sila.test'), storage: testStorage(), channelName: uniq('ch') });
+  try { eq(fresh.recoveredFrom, null, 'a first run with no saved data is not reported as damage'); } finally { fresh.close(); }
+});
+
+// Two tabs committing at the same instant (Task 7). A storage view can be told to return a stale copy for its next
+// reads, which reproduces "tab B read its state just before tab A wrote".
+function raceStores() {
+  const shared = memStorage();
+  const key = uniq('sila.test');
+  let stale = 0;
+  let snapshot = null;
+  const viewB = { getItem: (k) => (stale > 0 ? (stale--, snapshot) : shared.getItem(k)), setItem: (k, v) => shared.setItem(k, v), removeItem: (k) => shared.removeItem(k) };
+  const a = createStore({ key, storage: shared, channelName: uniq('ch'), BroadcastChannelImpl: null, eventTarget: null });
+  const b = createStore({ key, storage: viewB, channelName: uniq('ch'), BroadcastChannelImpl: null, eventTarget: null });
+  return { a, b, shared, key, staleFor: (n) => { snapshot = shared.getItem(key); stale = n; } };
+}
+const reserve = (st, caseId, user) => st.dispatch('reserveBed', { bedId: 'bed-er-06', caseId, expectedVersion: st.getState().beds['bed-er-06'].version }, user);
+const activeOnEr06 = (raw) => Object.values(JSON.parse(raw).reservations).filter((r) => r.bedId === 'bed-er-06' && r.status === 'active').map((r) => r.caseId);
+
+test('Store', 'simultaneous commits from two tabs: the later writer is refused, nothing is silently lost (Task 7)', () => {
+  const { a, b, shared, key, staleFor } = raceStores();
+  try {
+    staleFor(1); // B's dispatch reads its base before A's write lands…
+    ok(reserve(a, 'case-fern', 'u-er-coord'), 'A reserves');
+    const res = reserve(b, 'case-moss', 'u-er-coord-2'); // …but its pre-write check sees A's commit
+    rejected(res, 'conflict', 'Another tab changed this data at the same moment');
+    eq(activeOnEr06(shared.getItem(key)), ['case-fern'], 'exactly one reservation, the one A was told about');
+    eq(b.getState().meta.commitId, JSON.parse(shared.getItem(key)).meta.commitId, 'B now shows the stored data');
+  } finally { a.close(); b.close(); }
+});
+
+test('Store', 'if a write is still overwritten by a same-instant commit, the losing tab is told and resynchronised (Task 7)', () => {
+  const { a, b, shared, key, staleFor } = raceStores();
+  const told = [];
+  a.subscribe((_, info) => { if (info.source === 'conflict-lost') told.push(info.action); });
+  try {
+    staleFor(2); // B both reads and re-checks before A's write is visible: the true race
+    ok(reserve(a, 'case-fern', 'u-er-coord'), 'A reserves');
+    ok(reserve(b, 'case-moss', 'u-er-coord-2'), 'B also believes it reserved');
+    eq(activeOnEr06(shared.getItem(key)), ['case-moss'], 'storage keeps the last writer');
+    a.sync();
+    eq(told, ['reserveBed'], "A is told its reservation was not kept");
+    eq([a.getState().meta.commitId, a.getState().meta.rev], [JSON.parse(shared.getItem(key)).meta.commitId, b.getState().meta.rev], 'A adopted the stored copy');
+    eq(Object.values(a.getState().reservations).filter((r) => r.bedId === 'bed-er-06' && r.status === 'active').map((r) => r.caseId), ['case-moss'], 'A no longer shows a reservation that does not exist');
+  } finally { a.close(); b.close(); }
+});
+
 test('Store', 'reset restores a consistent dataset', () => {
   const storage = memStorage();
   const s = createStore({ key: uniq('sila.test'), storage, BroadcastChannelImpl: null, eventTarget: null });

@@ -216,7 +216,10 @@ export function dispatch(actionName, payload, user) {
   if (!engine) return fail('invalid', msg('err.notBound'));
   const res = applyAction(engine.getState(), actionName, payload, user, engine.now());
   if (!res.ok) return { ok: false, code: res.code, error: res.error, changed: [] };
-  engine.commit(res.state, { action: actionName, changed: res.changed });
+  // The store may refuse the write when another tab committed in the meantime (it then holds the newer copy).
+  if (engine.commit(res.state, { action: actionName, changed: res.changed }) === false) {
+    return { ok: false, code: 'conflict', error: msg('err.concurrentChange'), changed: [] };
+  }
   return { ok: true, changed: res.changed, result: res.result };
 }
 
